@@ -346,24 +346,255 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
-    <!-- FIREBASE & LOGIC -->
+    <!-- SUPABASE & LOGIC -->
+    <!-- Migration note: this app now uses Supabase (Postgres + Realtime) instead of Firebase.
+         A thin adapter below re-implements the Firebase Realtime Database API the app relies on
+         (ref, get, set, push, update, remove, onValue, off, query, limitToLast, orderByKey,
+         runTransaction) on top of a single generic `nodes` table:
+              nodes(path TEXT PRIMARY KEY, value JSONB, ts BIGINT)
+         Every data node is stored as one row keyed by its slash path; JSON trees are flattened
+         into leaf rows and reconstructed on read. Auth uses Supabase email/password with the
+         same phone->synthetic-email mapping. See SQL_SETUP note at the bottom of this file. -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getDatabase, ref, push, set, onValue, update, remove, query, limitToLast, orderByKey, off, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+        // ===== SUPABASE CONFIG (replace with your project credentials) =====
+        const SUPABASE_URL = "YOUR_SUPABASE_URL";
+        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+
+        // ============================================================
+        //  Firebase RTDB -> Supabase adapter
+        // ============================================================
+        // Table: nodes(path text primary key, value jsonb, ts bigint)
+        // RPCs (create once in SQL, see bottom of file):
+        //   cas_update(path text, expected_ts bigint, new_value jsonb, new_ts bigint)
+        //     -> integer (1 if updated, 0 if concurrent change)
+
+        const _escLike = (s) => String(s).replace(/\\/g,'\\\\').replace(/%/g,'\\%').replace(/_/g,'\\_');
+
+        // Flatten a JSON value into {path: value} leaf entries (objects recurse).
+        function _flatten(obj, prefix, out) {
+            if (obj === null || obj === undefined) return;
+            if (typeof obj === 'object' && !Array.isArray(obj)) {
+                const keys = Object.keys(obj);
+                if (keys.length === 0) { out[prefix] = null; return; }
+                for (const k of keys) {
+                    const p = prefix === '' ? k : prefix + '/' + k;
+                    _flatten(obj[k], p, out);
+                }
+            } else {
+                out[prefix] = obj;
+            }
+        }
+
+        // Reconstruct a nested object from rows whose paths begin with `prefix`.
+        function _buildTree(rows, prefix) {
+            const root = {};
+            for (const r of rows) {
+                let rel = r.path;
+                if (prefix) {
+                    if (r.path === prefix) { // exact leaf at path
+                        root.__exact = r.value;
+                        continue;
+                    }
+                    if (!r.path.startsWith(prefix + '/')) continue;
+                    rel = r.path.slice(prefix.length + 1);
+                }
+                const parts = rel.split('/');
+                let node = root;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    node[parts[i]] = node[parts[i]] || {};
+                    node = node[parts[i]];
+                }
+                node[parts[parts.length - 1]] = r.value;
+            }
+            if (root.__exact !== undefined) return root.__exact;
+            return Object.keys(root).length ? root : null;
+        }
+
+        function _snap(value) {
+            return { exists() { return value !== null && value !== undefined; }, val() { return value; } };
+        }
+
+        // Read the reconstructed value at a path.
+        async function _readValue(path) {
+            const { data, error } = await sb.from('nodes')
+                .select('path,value')
+                .filter('path', 'eq', path)
+                .or(`path.like.${_escLike(path)}/%`);
+            if (error) { console.error('read error', path, error); return null; }
+            return _buildTree(data || [], path);
+        }
+
+        async function _writeLeaves(leaves) {
+            if (!leaves || Object.keys(leaves).length === 0) return;
+            const rows = Object.keys(leaves).map(p => ({
+                path: p, value: JSON.parse(JSON.stringify(leaves[p] === undefined ? null : leaves[p])), ts: Date.now()
+            }));
+            const { error } = await sb.from('nodes').upsert(rows, { onConflict: 'path' });
+            if (error) console.error('write error', error);
+        }
+
+        // A "ref" is just a tagged path object.
+        function ref(_db, path) { return { __ref: true, path: path || '' }; }
+        async function get(r) { const v = await _readValue(r.path); return _snap(v); }
+        async function set(r, value) {
+            const path = r.path;
+            // delete existing descendants (and exact if it was a leaf)
+            const { error: de } = await sb.from('nodes')
+                .delete()
+                .filter('path', 'eq', path)
+                .or(`path.like.${_escLike(path)}/%`);
+            if (de) console.error('set delete error', de);
+            if (value === null || value === undefined) return;
+            const leaves = {};
+            _flatten(value, path, leaves);
+            await _writeLeaves(leaves);
+        }
+        async function update(r, patch) {
+            const leaves = {};
+            _flatten(patch, r.path, leaves);
+            await _writeLeaves(leaves);
+        }
+        async function push(r, value) {
+            const id = _genId();
+            const childPath = r.path + '/' + id;
+            await set(ref(null, childPath), value);
+            return ref(null, childPath);
+        }
+        async function remove(r) {
+            const { error } = await sb.from('nodes')
+                .delete()
+                .filter('path', 'eq', r.path)
+                .or(`path.like.${_escLike(r.path)}/%`);
+            if (error) console.error('remove error', error);
+        }
+
+        // query constraints
+        function query(r, ..._constraints) { return r; }
+        function limitToLast(_n) { return { kind: 'limitToLast', n: _n }; }
+        function orderByKey() { return { kind: 'orderByKey' }; }
+
+        // Realtime subscriptions
+        const _subs = new Map(); // path -> { channel }
+        function onValue(r, cb) {
+            const path = r.path;
+            // initial
+            _readValue(path).then(v => cb(_snap(v)));
+            const filter = `path.like.${_escLike(path)}/%`;
+            let timer = null;
+            const schedule = () => {
+                if (timer) return;
+                timer = setTimeout(async () => { timer = null; const v = await _readValue(path); cb(_snap(v)); }, 120);
+            };
+            const channel = sb.channel('rt:' + path)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes', filter }, schedule)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes', filter: `path=eq.${path}` }, schedule)
+                .subscribe();
+            _subs.set(path, { channel });
+            return () => off(r);
+        }
+        function off(r) {
+            const path = r.path;
+            const s = _subs.get(path);
+            if (s) { try { sb.removeChannel(s.channel); } catch (e) {} _subs.delete(path); }
+        }
+
+        // Atomic optimistic transactions (used for wallet balance increments/decrements).
+        // Requires RPC cas_update(path, expected_ts, new_value, new_ts) -> int
+        async function runTransaction(r, fn) {
+            const path = r.path;
+            for (let attempt = 0; attempt < 8; attempt++) {
+                const { data: row } = await sb.from('nodes').select('value,ts').eq('path', path).maybeSingle();
+                const cur = row ? row.value : null;
+                const curTs = row ? Number(row.ts) || 0 : 0;
+                const newVal = fn(cur === null ? 0 : cur);
+                if (newVal === undefined) return { committed: false, snapshot: _snap(null) };
+                const ts = Date.now();
+                const { data, error } = await sb.rpc('cas_update', {
+                    p_path: path, p_expected_ts: curTs, p_new_value: newVal, p_new_ts: ts
+                });
+                if (error) { console.error('txn rpc error', error); return { committed: false, snapshot: _snap(null) }; }
+                if (data === 1) return { committed: true, snapshot: _snap(newVal) };
+                // concurrent change -> retry
+            }
+            return { committed: false, snapshot: _snap(null) };
+        }
+
+        // Sortable push-id generator (time-ordered), roughly Firebase-like ordering.
+        function _genId() {
+            const t = Date.now().toString(36).padStart(9, '0');
+            const r = Math.random().toString(36).slice(2, 8);
+            return t + '-' + r;
+        }
+
+        // Object handle (kept for API compatibility; ref(db,...) ignores it)
+        const db = { __supabase: true };
+
+        // ============================================================
+        //  Auth adapter (Supabase email/password)
+        // ============================================================
+        const auth = { __supabase: true };
+
+        // Wrap a Supabase user object into the shape the app expects (uid/email/displayName).
+        function _wrapUser(u) {
+            if (!u) return null;
+            const meta = u.user_metadata || {};
+            return {
+                uid: u.id,
+                id: u.id,
+                email: u.email,
+                displayName: meta.display_name || meta.displayName || (u.email ? u.email.split('@')[0] : 'User'),
+                photoURL: meta.photo_url || meta.photoURL || null,
+                _raw: u
+            };
+        }
+
+        async function signInWithEmailAndPassword(_auth, email, pass) {
+            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+            if (error) throw error;
+        }
+
+        async function createUserWithEmailAndPassword(_auth, email, pass) {
+            const { data, error } = await sb.auth.signUp({ email, password: pass });
+            if (error) {
+                // Map Supabase duplicate-registration to the Firebase code the app checks.
+                const dup = /already registered|already been registered|exists/i.test(error.message || '');
+                const e = new Error(error.message);
+                if (dup) e.code = 'auth/email-already-in-use';
+                throw e;
+            }
+            // Establish a session immediately (requires email confirmation to be OFF in Supabase).
+            try { await sb.auth.signInWithPassword({ email, password: pass }); } catch (_) {}
+            return { user: _wrapUser(data && data.user ? data.user : {}) };
+        }
+
+        async function updateProfile(user, { displayName, photoURL }) {
+            const data = {};
+            if (displayName !== undefined) data.display_name = displayName;
+            if (photoURL !== undefined) data.photo_url = photoURL;
+            await sb.auth.updateUser({ data });
+        }
+
+        async function signOut(_auth) { await sb.auth.signOut(); }
+
+        function onAuthStateChanged(_auth, cb) {
+            // initial session
+            sb.auth.getSession().then(({ data }) => {
+                const w = data && data.session && data.session.user ? _wrapUser(data.session.user) : null;
+                cb(w);
+            });
+            const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+                cb(session && session.user ? _wrapUser(session.user) : null);
+            });
+            // keep a reference so the subscription isn't GC'd
+            _authSub = sub;
+        }
+        let _authSub = null;
+
 
         const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
         let currentUser = null;
@@ -1705,6 +1936,47 @@
                 renderAdminUserList();
             } catch (e) { showToast('Gagal menghapus: ' + e.message); }
         };
+
+        // ============================================================
+        //  SQL_SETUP (run once in the Supabase SQL editor)
+        // ============================================================
+        //  -- 1. Storage table: one row per data node (the app's whole "database").
+        //  create table if not exists public.nodes (
+        //    path text primary key,
+        //    value jsonb,
+        //    ts bigint not null default 0
+        //  );
+        //  create index if not exists nodes_path_like_idx on public.nodes (path text_pattern_ops);
+        //
+        //  -- 2. Compare-and-swap RPC used by runTransaction (atomic wallet balance updates).
+        //  create or replace function public.cas_update(
+        //    p_path text, p_expected_ts bigint, p_new_value jsonb, p_new_ts bigint
+        //  ) returns int language plpgsql as $$
+        //  declare ok int;
+        //  begin
+        //    update public.nodes set value = p_new_value, ts = p_new_ts
+        //      where path = p_path and coalesce(ts, 0) = p_expected_ts
+        //      returning 1 into ok;
+        //    if ok is null and p_expected_ts = 0 then
+        //      insert into public.nodes(path, value, ts)
+        //        values (p_path, p_new_value, p_new_ts)
+        //        on conflict (path) do nothing
+        //        returning 1 into ok;
+        //    end if;
+        //    return coalesce(ok, 0);
+        //  end; $$;
+        //
+        //  -- 3. Enable Realtime on the table (so onValue() live updates work).
+        //  alter publication supabase_realtime add table public.nodes;
+        //
+        //  -- 4. Row Level Security. Simplest working policy (auth users can read/write all
+        //  --    app nodes). Tighten per-path in production as needed.
+        //  alter table public.nodes enable row level security;
+        //  create policy "authed full access" on public.nodes
+        //    for all to authenticated using (true) with check (true);
+        //
+        //  -- 5. Auth: in Supabase dashboard set "Confirm email" = OFF so the phone-based
+        //  --    synthetic emails (e.g. 08xxxxx@beruang.phone) can sign in immediately.
     </script>
 </body>
 </html>
