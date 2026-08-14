@@ -97,9 +97,10 @@
         .stat-label { font-size: 12px; color: var(--text-muted); }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-top: 2px; }
         .grid-item { aspect-ratio: 1; width: 100%; object-fit: cover; cursor: pointer; }
-        .logout-btn { position: absolute; top: 20px; right: 20px; color: var(--accent-red); cursor: pointer; font-size: 22px; }
         .settings-btn { position: absolute; top: 20px; left: 20px; color: var(--text-muted); cursor: pointer; font-size: 22px; transition: transform 0.3s; }
         .settings-btn:active { transform: rotate(90deg); }
+        .btn-logout { width: 100%; padding: 13px; border: none; border-radius: 14px; background: #fee2e2; color: var(--accent-red); font-weight: 700; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.1s; }
+        .btn-logout:active { transform: scale(0.96); }
         .settings-menu-item { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; cursor: pointer; transition: background 0.2s; }
         .settings-menu-item:active { background: #f1f5f9; }
         .settings-menu-item i { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: #f1f5f9; color: var(--text-main); }
@@ -253,7 +254,6 @@
         <!-- PROFILE -->
         <div id="view-profile" class="view">
             <i class="fas fa-cog settings-btn" onclick="openSettingsModal()" title="Pengaturan Akun"></i>
-            <i class="fas fa-sign-out-alt logout-btn" onclick="handleLogout()" title="Logout"></i>
             <div class="profile-head">
                 <img id="profile-img" src="" class="p-big-img" onclick="document.getElementById('profile-file').click()">
                 <h2 id="profile-name" style="margin: 0; font-size: 22px; color: #1a1a1a;">Loading...</h2>
@@ -1047,7 +1047,7 @@
                     <div><div class="smi-label">${it.label}</div><div class="smi-sub">${it.sub}</div></div>
                 </div>
             `).join('');
-            openModal(`<div class="modal-title">Pengaturan</div><div class="modal-sub">Kelola akun & informasi aplikasi</div><div style="margin-top:6px;">${rows}</div>`);
+            openModal(`<div class="modal-title">Pengaturan</div><div class="modal-sub">Kelola akun & informasi aplikasi</div><div style="margin-top:6px;">${rows}</div><div style="height:1px; background:#e2e8f0; margin:18px 0;"></div><button class="btn-logout" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Keluar / Logout</button>`);
         };
 
         window.openAbout = () => openInfoModal('Tentang BERUANG', `
@@ -1254,7 +1254,14 @@
             const recipient = pendingTransferRecipient;
             openModal(`
                 <div class="modal-title">Masukkan PIN Transaksi</div>
-                <div class="modal-sub">Masukkan 4 digit PIN untuk konfirmasi transfer <b>${amount.toLocaleString('id-ID')}</b> poin ke ${escHtml(recipient.username)}.</div>
+                <div class="modal-sub">Konfirmasi transfer <b>${amount.toLocaleString('id-ID')}</b> poin ke:</div>
+                <div class="recipient-box">
+                    <img src="${escHtml(recipient.photo)}">
+                    <div>
+                        <div style="font-weight:700; font-size:14px; color:#333;">${escHtml(recipient.username)}</div>
+                        <div style="font-size:12px; color:var(--text-muted); font-family:monospace;">ID: ${escHtml(recipient.acctId)}</div>
+                    </div>
+                </div>
                 <div class="pin-dots">
                     <input id="pin-0" class="auth-input" maxlength="1" inputmode="numeric">
                     <input id="pin-1" class="auth-input" maxlength="1" inputmode="numeric">
@@ -1345,9 +1352,10 @@
             // credit recipient
             await runTransaction(ref(db, `wallets/${recipient.uid}/balance`), (cur) => (cur || 0) + amount);
             const ts = Date.now();
-            await push(ref(db, `wallets/${currentUser.uid}/history`), { type: 'transfer_out', amount: amount, to: recipient.uid, toName: recipient.username, timestamp: ts });
-            await push(ref(db, `wallets/${recipient.uid}/history`), { type: 'transfer_in', amount: amount, from: currentUser.uid, fromName: currentUser.displayName || 'User', timestamp: ts });
-            sendNotif(recipient.uid, `mengirim ${amount} poin ke Anda`);
+            const senderName = currentUser.displayName || fallbackName(currentUser);
+            await push(ref(db, `wallets/${currentUser.uid}/history`), { type: 'transfer_out', amount: amount, to: recipient.uid, toName: recipient.username, toAcctId: recipient.acctId, timestamp: ts });
+            await push(ref(db, `wallets/${recipient.uid}/history`), { type: 'transfer_in', amount: amount, from: currentUser.uid, fromName: senderName, fromAcctId: myAcctId, timestamp: ts });
+            sendNotif(recipient.uid, `${senderName} mengirim ${amount} poin ke Anda`);
             showToast(`Transfer ${amount} poin berhasil!`);
             pendingTransferRecipient = null;
             closeModal();
@@ -1451,17 +1459,17 @@
                 if (!data) { list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px; font-size:13px;">Belum ada transaksi.</div>'; return; }
                 list.innerHTML = '';
                 Object.values(data).reverse().forEach(t => {
-                    let label = '', cls = '', sign = '';
+                    let label = '', sub = '', cls = '', sign = '';
                     if (t.type === 'reward') { label = `Reward: ${escHtml(t.reason||'aktivitas')}`; cls = 'in'; sign = '+'; }
-                    else if (t.type === 'transfer_in') { label = `Diterima dari ${escHtml(t.fromName||'User')}`; cls = 'in'; sign = '+'; }
-                    else if (t.type === 'transfer_out') { label = `Dikirim ke ${escHtml(t.toName||'User')}`; cls = 'out'; sign = '-'; }
+                    else if (t.type === 'transfer_in') { label = `Diterima dari ${escHtml(t.fromName||'User')}`; sub = t.fromAcctId ? `ID: ${escHtml(t.fromAcctId)}` : ''; cls = 'in'; sign = '+'; }
+                    else if (t.type === 'transfer_out') { label = `Dikirim ke ${escHtml(t.toName||'User')}`; sub = t.toAcctId ? `ID: ${escHtml(t.toAcctId)}` : ''; cls = 'out'; sign = '-'; }
                     else if (t.type === 'upgrade') { label = `Upgrade akun ke ${escHtml(t.tier||'tier')}`; cls = 'out'; sign = '-'; }
                     const d = new Date(t.timestamp);
                     list.innerHTML += `
                         <div class="txn-history-item">
                             <div>
                                 <div style="font-size:13px; color:#333;">${label}</div>
-                                <div style="font-size:11px; color:var(--text-muted);">${d.toLocaleString('id-ID')}</div>
+                                <div style="font-size:11px; color:var(--text-muted);">${d.toLocaleString('id-ID')}${sub ? ' · ' + sub : ''}</div>
                             </div>
                             <div class="txn-amount ${cls}">${sign}${Number(t.amount).toLocaleString('id-ID')}</div>
                         </div>
