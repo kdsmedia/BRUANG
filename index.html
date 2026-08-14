@@ -371,7 +371,7 @@
         let pendingTransferRecipient = null; // {uid, username, photo, acctId}
 
         // ===== POINTS CONFIG =====
-        const POINTS = { COMMENT: 50, POST: 20, FOLLOW: 10 };
+        const POINTS = { COMMENT: 50, POST: 20, FOLLOW: 10, LIKE: 2 };
         // TIERS: purchased account tiers with upgrade price + daily activity limits
         // postLimit / commentLimit of Infinity = unlimited (Master)
         const TIERS = [
@@ -846,14 +846,23 @@
             });
         }
 
-        window.toggleLike = (pid, authorId) => {
+        window.toggleLike = async (pid, authorId) => {
             const path = `posts/${pid}/likes/${currentUser.uid}`;
             const btn = document.querySelector(`[onclick="toggleLike('${pid}', '${authorId}')"]`);
             if(btn && btn.classList.contains('liked')) {
                  remove(ref(db, path));
             } else {
                  set(ref(db, path), true);
-                 if(authorId !== currentUser.uid) sendNotif(authorId, "liked your post");
+                 if(authorId !== currentUser.uid) {
+                     sendNotif(authorId, "liked your post");
+                     // Award 2 poin only the first time this post is liked (anti-farming)
+                     const rewarded = await get(ref(db, `posts/${pid}/likeRewards/${currentUser.uid}`));
+                     if (!rewarded.exists()) {
+                         await set(ref(db, `posts/${pid}/likeRewards/${currentUser.uid}`), true);
+                         await awardPoints(currentUser.uid, POINTS.LIKE, `like ${pid}`);
+                         showToast(`+${POINTS.LIKE} poin (menyukai postingan)`);
+                     }
+                 }
             }
         };
 
