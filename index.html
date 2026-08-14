@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JavaGoat - Social</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-nav: #eab308;
+            --bg-card: #ffffff;
+            --accent-red: #ff0000;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.06);
+            --radius-card: 20px;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background-color: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; font-size: 14.5px; }
+        .hidden { display: none !important; }
+        .gradient-text { background: linear-gradient(to right, var(--bg-nav), var(--accent-red)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+
+        #auth-view { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #fffbeb, #fef3c7); padding: 20px; z-index: 2000; position: fixed; inset: 0; }
+        .auth-card { background: var(--bg-card); padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); width: 100%; max-width: 400px; text-align: center; animation: fadeIn 0.3s ease-in-out; }
+        .logo-text-lg { font-size: 2rem; font-weight: 700; background: linear-gradient(to right, var(--bg-nav), var(--accent-red)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem; }
+        .auth-input-wrapper { margin-bottom: 1rem; text-align: left; }
+        .auth-input { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px; font-family: inherit; outline: none; transition: 0.3s; font-size: 14px; }
+        .auth-input:focus { border-color: var(--bg-nav); }
+        .btn-primary { background: var(--bg-nav); color: #000; font-weight: 600; padding: 12px; border-radius: 12px; width: 100%; font-size: 1rem; margin-bottom: 10px; border: none; cursor: pointer; transition: transform 0.1s; }
+        .btn-primary:active { transform: scale(0.95); }
+        .btn-google { background: #db4437; border: none; color: white; margin-top: 10px; width: 100%; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(219,68,55,0.3); }
+        .auth-note { font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; }
+
+        #app-container { height: 100%; display: flex; flex-direction: column; position: relative; }
+        .view { height: 100%; overflow-y: auto; padding-bottom: 85px; display: none; scroll-behavior: smooth; }
+        .view.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .nav-dock { position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; display: flex; justify-content: space-around; align-items: center; z-index: 1000; background: var(--bg-nav); box-shadow: 0 -10px 25px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; }
+        .nav-item { color: rgba(255,255,255,0.7); padding: 10px; transition: 0.3s; display: flex; flex-direction: column; align-items: center; position: relative; cursor: pointer; }
+        .nav-item i { font-size: 22px; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav-item.active i { transform: scale(1.1); text-shadow: 0 0 10px rgba(255,255,255,0.6); }
+        .nav-center-btn { background: var(--accent-red); width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transform: translateY(-20px); box-shadow: 0 8px 20px rgba(255,0,0,0.3); border: 4px solid #fff; transition: transform 0.2s; }
+        .nav-center-btn:active { transform: translateY(-15px) scale(0.95); }
+        .nav-center-btn i { font-size: 24px !important; color: white !important; }
+        .badge { position: absolute; top: 4px; right: 4px; background-color: var(--accent-red); color: white; font-size: 10px; font-weight: bold; height: 16px; min-width: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid var(--bg-nav); }
+
+        .header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 90; background: rgba(255,255,255,0.98); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .stories-wrapper { display: flex; gap: 12px; overflow-x: auto; padding: 15px 20px; scrollbar-width: none; background: #fff; margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
+        .story-card { width: 65px; height: 65px; border-radius: 50%; position: relative; overflow: hidden; border: 2px solid var(--bg-nav); padding: 2px; flex-shrink: 0; }
+        .story-card img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .story-card.add { background: #fff; border: 2px dashed var(--bg-nav); display: flex; align-items: center; justify-content: center; color: var(--bg-nav); }
+        .post-card { margin: 10px 10px 25px 10px; padding: 0; border-radius: var(--radius-card); box-shadow: var(--shadow-soft); background: white; overflow: hidden; border: 1px solid rgba(0,0,0,0.03); }
+        .post-header { display: flex; align-items: center; gap: 12px; padding: 12px; }
+        .p-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; }
+        .post-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
+        .post-actions { display: flex; gap: 18px; padding: 12px 15px 5px 15px; }
+        .action-btn { font-size: 24px; color: var(--text-main); cursor: pointer; transition: transform 0.2s; }
+        .action-btn.liked { color: var(--accent-red); }
+        .caption-area { padding: 5px 15px 12px 15px; color: var(--text-muted); font-size: 13.5px; line-height: 1.4; }
+        .caption-area b { color: var(--text-main); margin-right: 6px; font-weight: 600; }
+        .btn-follow { padding: 6px 16px; font-size: 12px; font-weight: 700; border-radius: 15px; border: none; cursor: pointer; margin-left: auto; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-follow.not-following { background: var(--accent-red); color: white; box-shadow: 0 4px 10px rgba(255,0,0,0.3); }
+        .btn-follow.following { background: #f1f5f9; color: var(--text-muted); border: 1px solid #e2e8f0; }
+        .comment-section { padding: 0 15px 15px 15px; }
+        .comment-toggle { font-size: 13px; color: #94a3b8; cursor: pointer; margin-bottom: 8px; display: inline-block; font-weight: 500; }
+        .comment-item { font-size: 13px; margin-bottom: 4px; color: var(--text-muted); }
+        .comment-input-box { display: flex; gap: 8px; margin-top: 8px; }
+        .comment-input-box input { flex: 1; border: none; background: #f1f5f9; padding: 10px 15px; border-radius: 20px; font-size: 13px; outline: none; }
+        .comment-input-box button { border: none; background: transparent; color: var(--bg-nav); font-weight: 600; cursor: pointer; font-size: 13px; }
+        .upload-area { margin: 15px; height: 300px; border: 2px dashed #cbd5e1; border-radius: 25px; display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; position: relative; overflow: hidden; background: #f8fafc; transition: 0.3s; }
+        .upload-area:active { background: #f1f5f9; border-color: var(--bg-nav); }
+        .upload-preview { width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; display: none; }
+        textarea { width: 100%; background: #fff; border: 2px solid #e2e8f0; padding: 15px; color: #333; border-radius: 15px; resize: none; margin-bottom: 15px; font-size: 14.5px; font-family: 'Poppins'; }
+        textarea:focus { border-color: var(--bg-nav); outline: none; }
+        .btn-main { width: 100%; padding: 14px; border: none; border-radius: 14px; background: var(--bg-nav); color: white; font-weight: 600; cursor: pointer; transition: transform 0.2s; font-size: 15px; margin-top: 15px; box-shadow: 0 4px 15px rgba(234,179,8,0.4); }
+        .chat-list-container { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-list-item { padding: 12px; display: flex; align-items: center; gap: 12px; border-radius: 15px; cursor: pointer; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: 0.2s; }
+        .chat-window { position: fixed; inset: 0; z-index: 2100; background: var(--bg-body); display: flex; flex-direction: column; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #fff; }
+        .bubble { padding: 10px 15px; border-radius: 18px; max-width: 75%; font-size: 14px; position: relative; line-height: 1.4; }
+        .bubble.mine { align-self: flex-end; background: var(--bg-nav); color: white; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(234,179,8,0.3); }
+        .bubble.theirs { align-self: flex-start; background: #f1f5f9; color: #333; border-bottom-left-radius: 4px; }
+        .chat-input-bar { padding: 12px; background: #fff; border-top: 1px solid #eee; display: flex; gap: 10px; align-items: center; }
+
+        .profile-head { padding: 30px 20px; text-align: center; background: #fff; margin-bottom: 15px; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; box-shadow: var(--shadow-soft); }
+        .p-big-img { width: 100px; height: 100px; border-radius: 50%; border: 4px solid white; object-fit: cover; margin-bottom: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .stats-row { display: flex; justify-content: center; gap: 30px; margin: 20px 0; }
+        .stat-num { font-size: 18px; font-weight: 700; color: var(--text-main); display: block; }
+        .stat-label { font-size: 12px; color: var(--text-muted); }
+        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-top: 2px; }
+        .grid-item { aspect-ratio: 1; width: 100%; object-fit: cover; cursor: pointer; }
+        .logout-btn { position: absolute; top: 20px; right: 20px; color: var(--accent-red); cursor: pointer; font-size: 22px; }
+        .btn-sec { background: transparent; border: 2px solid var(--bg-nav); color: var(--bg-nav); box-shadow: none; }
+        .notif-row { padding: 15px 20px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #f1f5f9; background: #fff; }
+        .notif-icon { width: 40px; height: 40px; border-radius: 50%; background: #fffbeb; color: #ca8a04; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .loader { width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.2); border-radius: 50%; border-top-color: #000; animation: spin 1s ease-in-out infinite; display: none; margin: 0 auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* WALLET / POINTS / QR / TRANSFER */
+        .wallet-card { margin: 0 12px 15px; padding: 18px; border-radius: 20px; background: linear-gradient(135deg, #1e293b, #334155); color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
+        .wallet-card::after { content: ''; position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; background: rgba(234,179,8,0.15); border-radius: 50%; }
+        .wallet-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+        .wallet-amount { font-size: 32px; font-weight: 700; margin: 4px 0 2px; }
+        .wallet-amount span:last-child { font-size: 14px; font-weight: 500; opacity: 0.8; }
+        .wallet-acct { font-size: 12px; opacity: 0.8; margin-top: 6px; font-family: monospace; }
+        .wallet-actions { display: flex; gap: 10px; margin-top: 16px; }
+        .wallet-btn { flex: 1; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 10px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s; }
+        .wallet-btn:active { transform: scale(0.96); }
+        .wallet-btn i { font-size: 16px; }
+        .wallet-btn.primary { background: var(--bg-nav); color: #000; border-color: var(--bg-nav); }
+        .rank-badge-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-top: 10px; }
+        .rank-Star { background: #f1f5f9; color: #64748b; }
+        .rank-Bronze { background: #fed7aa; color: #9a3412; }
+        .rank-Silver { background: #e2e8f0; color: #475569; }
+        .rank-Gold { background: #fef3c7; color: #b45309; }
+        .rank-Master { background: #ede9fe; color: #6d28d9; }
+        .rank-badge-pill i { font-size: 13px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2200; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.25s ease; }
+        .modal-card { background: #fff; border-radius: 22px; width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; }
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+        .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+        .modal-close { position: absolute; top: 16px; right: 16px; color: var(--text-muted); cursor: pointer; font-size: 20px; background: none; border: none; }
+        .field-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; }
+        .field-group { margin-bottom: 14px; }
+        .qr-box { background: #fff; padding: 16px; border-radius: 16px; display: inline-block; margin: 8px 0; border: 1px solid #e2e8f0; }
+        .qr-box img, .qr-box canvas { display: block; }
+        .acct-id-big { font-size: 26px; font-weight: 700; letter-spacing: 4px; font-family: monospace; color: var(--text-main); margin: 8px 0; }
+        .recipient-box { background: #f1f5f9; border-radius: 14px; padding: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .recipient-box img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+        .pin-dots { display: flex; gap: 12px; justify-content: center; margin: 18px 0; }
+        .pin-dots input { width: 50px; height: 60px; text-align: center; font-size: 24px; border: 2px solid var(--border); border-radius: 12px; outline: none; }
+        .pin-dots input:focus { border-color: var(--bg-nav); }
+        .scan-video-box { background: #000; border-radius: 16px; overflow: hidden; position: relative; aspect-ratio: 1; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; }
+        .scan-video-box video { width: 100%; height: 100%; object-fit: cover; }
+        .scan-overlay-frame { position: absolute; width: 70%; height: 70%; border: 3px solid var(--bg-nav); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); }
+        .txn-history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .txn-history-item:last-child { border-bottom: none; }
+        .txn-amount.in { color: #16a34a; font-weight: 700; }
+        .txn-amount.out { color: var(--accent-red); font-weight: 700; }
+        .radio-row { display: flex; gap: 8px; }
+        .radio-row label { flex: 1; border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; font-size: 13px; cursor: pointer; }
+        .radio-row input { display: none; }
+        .radio-row input:checked + span { font-weight: 700; }
+        .radio-row label:has(input:checked) { border-color: var(--bg-nav); background: #fffbeb; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 13px; z-index: 3000; box-shadow: 0 8px 20px rgba(0,0,0,0.25); animation: fadeIn 0.25s ease; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-view">
+        <div class="auth-card">
+            <div class="logo-text-lg">JavaGoat</div>
+            <p style="color:#666; margin-bottom:20px;">Connect & Bleat.</p>
+            <div class="auth-input-wrapper"><input type="email" id="email" class="auth-input" placeholder="Email Address"></div>
+            <div class="auth-input-wrapper"><input type="password" id="password" class="auth-input" placeholder="Password"></div>
+            <button class="btn-primary" onclick="handleAuth()">
+                <span id="auth-text">Login / Join</span>
+                <div id="auth-loader" class="loader"></div>
+            </button>
+            <p id="error-msg" style="color: #ef4444; font-size: 13px; margin: 10px 0; min-height:18px;"></p>
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:15px 0;">
+                <hr style="flex:1; border:0; border-top:1px solid #ddd;">
+                <span style="color:#aaa; font-size:0.8rem;">OR</span>
+                <hr style="flex:1; border:0; border-top:1px solid #ddd;">
+            </div>
+            <button class="btn-google" onclick="handleGoogle()"><i class="fab fa-google"></i> Continue with Google</button>
+            <p class="auth-note">Enter your credentials. If you don't have an account, we'll create one for you automatically!</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-container" class="hidden">
+
+        <!-- HOME VIEW -->
+        <div id="view-home" class="view active">
+            <div class="header">
+                <span class="gradient-text" style="font-size: 20px; letter-spacing: -0.5px;">JavaGoat</span>
+                <div style="display:flex; gap:16px; align-items:center;">
+                    <i class="fas fa-qrcode" style="font-size: 20px; color: #333; cursor: pointer;" onclick="openQRScanner()" title="Scan & Transfer"></i>
+                    <i class="far fa-paper-plane" style="font-size: 20px; color: #333; cursor: pointer;" onclick="nav('view-chat')"></i>
+                </div>
+            </div>
+            <div class="stories-wrapper" id="stories-container">
+                <div class="story-card add" onclick="document.getElementById('story-file').click()"><i class="fas fa-plus" style="font-size: 20px;"></i></div>
+            </div>
+            <div id="feed-container"></div>
+        </div>
+
+        <!-- SEARCH / CHAT -->
+        <div id="view-chat" class="view">
+            <div class="header"><span style="font-size: 18px; font-weight: 700; color:#333">Messages</span></div>
+            <div id="chat-list" class="chat-list-container"></div>
+        </div>
+
+        <!-- UPLOAD -->
+        <div id="view-upload" class="view">
+            <div class="header"><span style="font-size: 18px; font-weight: 700; color:#333">New Post</span></div>
+            <div style="padding: 20px;">
+                <div class="upload-area" onclick="document.getElementById('post-file').click()">
+                    <img id="upload-preview-img" class="upload-preview">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: #cbd5e1; margin-bottom: 10px;"></i>
+                    <span style="color: #94a3b8; font-size: 14px;">Tap to upload image</span>
+                </div>
+                <textarea id="post-caption" rows="3" placeholder="Write a caption..."></textarea>
+                <button class="btn-main" onclick="uploadPost()">
+                    <span id="post-btn-text">Publish Post</span>
+                    <div id="post-loader" class="loader" style="border-color: rgba(255,255,255,0.3); border-top-color: #fff;"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- NOTIFICATIONS -->
+        <div id="view-notif" class="view">
+            <div class="header"><span style="font-size: 18px; font-weight: 700; color:#333">Activity</span></div>
+            <div id="notif-list"></div>
+        </div>
+
+        <!-- PROFILE -->
+        <div id="view-profile" class="view">
+            <i class="fas fa-sign-out-alt logout-btn" onclick="handleLogout()" title="Logout"></i>
+            <div class="profile-head">
+                <img id="profile-img" src="" class="p-big-img" onclick="document.getElementById('profile-file').click()">
+                <h2 id="profile-name" style="margin: 0; font-size: 22px; color: #1a1a1a;">Loading...</h2>
+                <div id="rank-pill" class="rank-badge-pill"></div>
+                <div style="display:flex; gap:8px; justify-content:center; margin-top: 12px;">
+                    <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="toggleEditName()">Edit Name</button>
+                    <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="openEditProfileModal()">Full Profile</button>
+                </div>
+                <input id="edit-name-input" class="auth-input hidden" style="margin-top: 15px; text-align: center;">
+                <div class="stats-row">
+                    <div class="stat-box"><span class="stat-num" id="stat-posts">0</span><span class="stat-label">Posts</span></div>
+                    <div class="stat-box"><span class="stat-num" id="stat-followers">0</span><span class="stat-label">Followers</span></div>
+                    <div class="stat-box"><span class="stat-num" id="stat-following">0</span><span class="stat-label">Following</span></div>
+                </div>
+            </div>
+
+            <!-- WALLET CARD -->
+            <div class="wallet-card">
+                <div class="wallet-label">Points Balance</div>
+                <div class="wallet-amount"><span id="wallet-balance">0</span> <span>poin</span></div>
+                <div class="wallet-acct">ID Akun: <b id="wallet-acct-id">000000</b></div>
+                <div class="wallet-actions">
+                    <button class="wallet-btn primary" onclick="openMyQRModal()"><i class="fas fa-qrcode"></i>Kode QR Saya</button>
+                    <button class="wallet-btn" onclick="openQRScanner()"><i class="fas fa-camera"></i>Scan Transfer</button>
+                    <button class="wallet-btn" onclick="openTxnHistoryModal()"><i class="fas fa-clock-rotate-left"></i>Riwayat</button>
+                </div>
+            </div>
+
+            <div class="grid-container" id="profile-grid"></div>
+        </div>
+
+        <!-- NAVIGATION DOCK -->
+        <div class="nav-dock">
+            <div class="nav-item active" onclick="nav('view-home')"><i class="fas fa-home"></i></div>
+            <div class="nav-item" onclick="nav('view-chat')"><i class="fas fa-comment-dots"></i><span id="badge-chat" class="badge hidden">0</span></div>
+            <div class="nav-item" onclick="nav('view-upload')" style="overflow: visible;"><div class="nav-center-btn"><i class="fas fa-plus"></i></div></div>
+            <div class="nav-item" onclick="nav('view-notif')"><i class="fas fa-heart"></i><span id="badge-notif" class="badge hidden">0</span></div>
+            <div class="nav-item" onclick="nav('view-profile')"><i class="fas fa-user"></i></div>
+        </div>
+
+        <!-- CHAT OVERLAY -->
+        <div id="chat-overlay" class="chat-window hidden">
+            <div class="header" style="background: #fff; border-bottom: 1px solid #eee;">
+                <i class="fas fa-arrow-left" onclick="closeChat()" style="font-size: 22px; cursor: pointer; color:#333;"></i>
+                <span id="chat-title" style="font-size: 18px; font-weight: 600; color:#333;">Chat</span>
+                <div style="width: 24px;"></div>
+            </div>
+            <div id="chat-msgs" class="chat-messages"></div>
+            <div class="chat-input-bar">
+                <input type="text" id="chat-input" class="auth-input" placeholder="Type a message..." style="margin:0; border-radius: 30px; background: #f8fafc;">
+                <button class="btn-main" style="width: auto; margin:0; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;" onclick="sendMsg()">
+                    <i class="fas fa-paper-plane" style="font-size: 16px;"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- HIDDEN INPUTS & CANVAS -->
+    <input type="file" id="post-file" class="hidden" accept="image/*" onchange="previewUpload(this)">
+    <input type="file" id="story-file" class="hidden" accept="image/*" onchange="uploadStory(this)">
+    <input type="file" id="profile-file" class="hidden" accept="image/*" onchange="uploadProfilePic(this)">
+    <canvas id="compressor" class="hidden"></canvas>
+
+    <!-- MODALS CONTAINER -->
+    <div id="modal-root"></div>
+
+    <!-- QR generation + scanning libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+    <!-- FIREBASE & LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getDatabase, ref, push, set, onValue, update, remove, query, limitToLast, orderByKey, off, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const provider = new GoogleAuthProvider();
+
+        const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+        let currentUser = null;
+        let usersCache = {};
+        let followingCache = {};
+
+        let activeChatId = null;
+        let chatListenerRef = null;
+
+        let notifCount = 0;
+        let chatCount = 0;
+        let currentView = 'view-home';
+
+        // --- Wallet / Points / Account state ---
+        let myPoints = 0;
+        let myAcctId = '000000';
+        let scannerStream = null;
+        let scannerRAF = null;
+        let pendingTransferRecipient = null; // {uid, username, photo, acctId}
+
+        // ===== POINTS CONFIG =====
+        const POINTS = { COMMENT: 50, POST: 20, FOLLOW: 10 };
+        const RANKS = [
+            { name: 'Star',   min: 0,     icon: 'fa-star',   color: '#64748b' },
+            { name: 'Bronze', min: 500,   icon: 'fa-medal',  color: '#9a3412' },
+            { name: 'Silver', min: 2000,  icon: 'fa-award',  color: '#475569' },
+            { name: 'Gold',   min: 5000,  icon: 'fa-trophy', color: '#b45309' },
+            { name: 'Master', min: 15000, icon: 'fa-crown',  color: '#6d28d9' }
+        ];
+
+        function getRank(points) {
+            let r = RANKS[0];
+            for (const rank of RANKS) if (points >= rank.min) r = rank;
+            return r;
+        }
+
+        // ===== WALLET / ACCOUNT ID HELPERS =====
+        function genAcctId() {
+            let id = '';
+            do { id = String(Math.floor(100000 + Math.random() * 900000)); }
+            while (id.length !== 6);
+            return id;
+        }
+
+        async function isAcctIdTaken(id) {
+            const snap = await get(query(ref(db, 'account_index'), orderByKey()));
+            const idx = snap.val() || {};
+            for (const uid in idx) if (idx[uid] === id) return true;
+            return false;
+        }
+
+        async function genUniqueAcctId() {
+            for (let i = 0; i < 20; i++) {
+                const id = genAcctId();
+                if (!(await isAcctIdTaken(id))) return id;
+            }
+            return genAcctId();
+        }
+
+        // Ensure wallet + account id + profile fields exist for a user
+        async function ensureWalletExists(uid, displayName) {
+            const wRef = ref(db, `wallets/${uid}`);
+            const snap = await get(wRef);
+            if (!snap.exists()) {
+                const acctId = await genUniqueAcctId();
+                await set(wRef, { balance: 0, acctId: acctId });
+                await set(ref(db, `account_index/${uid}`), acctId);
+            }
+            // ensure profile fields exist
+            const pRef = ref(db, `profiles/${uid}`);
+            const pSnap = await get(pRef);
+            if (!pSnap.exists()) {
+                const name = displayName || (currentUser && currentUser.email ? currentUser.email.split('@')[0] : 'User');
+                await set(pRef, { fullname: name, phone: '', email: '', gender: '' });
+            }
+        }
+
+        // Listen to my own wallet
+        function listenMyWallet() {
+            if (!currentUser) return;
+            onValue(ref(db, `wallets/${currentUser.uid}`), snap => {
+                const w = snap.val() || { balance: 0, acctId: '000000' };
+                myPoints = Number(w.balance) || 0;
+                myAcctId = w.acctId || '000000';
+                const balEl = document.getElementById('wallet-balance');
+                const idEl = document.getElementById('wallet-acct-id');
+                if (balEl) balEl.innerText = myPoints.toLocaleString('id-ID');
+                if (idEl) idEl.innerText = myAcctId;
+                renderRankPill(myPoints);
+            });
+        }
+
+        function renderRankPill(points) {
+            const el = document.getElementById('rank-pill');
+            if (!el) return;
+            const r = getRank(points);
+            el.className = `rank-badge-pill rank-${r.name}`;
+            el.innerHTML = `<i class="fas ${r.icon}"></i> ${r.name}`;
+        }
+
+        // Award points atomically
+        async function awardPoints(uid, amount, reason) {
+            if (!uid || amount <= 0) return;
+            await runTransaction(ref(db, `wallets/${uid}/balance`), (cur) => {
+                return (cur || 0) + amount;
+            });
+            await push(ref(db, `wallets/${uid}/history`), {
+                type: 'reward', amount: amount, reason: reason || 'activity',
+                timestamp: Date.now()
+            });
+        }
+
+        // --- AUTH & LOGOUT ---
+        window.handleAuth = async () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const btnText = document.getElementById('auth-text');
+            const loader = document.getElementById('auth-loader');
+            const errorP = document.getElementById('error-msg');
+            if(!email || !pass) return;
+            btnText.style.display = 'none';
+            loader.style.display = 'block';
+            errorP.innerText = '';
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                try {
+                    const res = await createUserWithEmailAndPassword(auth, email, pass);
+                    const defaultName = email.split('@')[0];
+                    await updateProfile(res.user, { displayName: defaultName, photoURL: DEFAULT_AVATAR });
+                    await ensureWalletExists(res.user.uid, defaultName);
+                    await update(ref(db, `users/${res.user.uid}`), { username: defaultName, photo: DEFAULT_AVATAR, uid: res.user.uid });
+                } catch (err) {
+                    errorP.innerText = err.message.replace('Firebase:', '');
+                    btnText.style.display = 'block';
+                    loader.style.display = 'none';
+                }
+            }
+        };
+
+        window.handleGoogle = async () => {
+            try {
+                const res = await signInWithPopup(auth, provider);
+                const photo = res.user.photoURL || DEFAULT_AVATAR;
+                await ensureWalletExists(res.user.uid, res.user.displayName);
+                await update(ref(db, `users/${res.user.uid}`), { username: res.user.displayName, photo: photo, uid: res.user.uid });
+            } catch (e) { console.error(e); }
+        };
+
+        window.handleLogout = async () => { await signOut(auth); };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-view').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                init();
+            } else {
+                currentUser = null;
+                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('app-container').classList.add('hidden');
+                document.getElementById('auth-text').style.display = 'block';
+                document.getElementById('auth-loader').style.display = 'none';
+                nav('view-home');
+            }
+        });
+
+        // --- APP LOGIC ---
+        function init() {
+            listenUsers();
+            listenFollowing();
+            listenFeed();
+            listenStories();
+            listenNotifications();
+            listenGlobalChatBadge();
+            listenMyWallet();
+            loadProfile();
+        }
+
+        window.nav = (viewId) => {
+            currentView = viewId;
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            const items = document.querySelectorAll('.nav-item');
+            items.forEach(i => i.classList.remove('active'));
+            const map = {'view-home':0, 'view-chat':1, 'view-upload':2, 'view-notif':3, 'view-profile':4};
+            if(items[map[viewId]]) items[map[viewId]].classList.add('active');
+            if(viewId === 'view-profile') loadProfile();
+            if(viewId === 'view-notif') {
+                notifCount = 0;
+                document.getElementById('badge-notif').classList.add('hidden');
+            }
+            if(viewId === 'view-chat') {
+                chatCount = 0;
+                document.getElementById('badge-chat').classList.add('hidden');
+            }
+        };
+
+        const processImage = (file, maxWidth = 800, quality = 0.7) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.getElementById('compressor');
+                        const ctx = canvas.getContext('2d');
+                        const scale = maxWidth / img.width;
+                        canvas.width = maxWidth;
+                        canvas.height = img.height * scale;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                };
+            });
+        };
+
+        window.listenUsers = () => {
+            onValue(ref(db, 'users'), snap => {
+                usersCache = snap.val() || {};
+                renderChatList();
+                if(currentView === 'view-profile') loadProfile();
+            });
+        };
+
+        function renderChatList() {
+            const list = document.getElementById('chat-list');
+            list.innerHTML = '';
+            const globalDiv = document.createElement('div');
+            globalDiv.className = 'chat-list-item';
+            globalDiv.onclick = () => openChat('global');
+            globalDiv.innerHTML = '<div style="width:50px;height:50px;border-radius:50%;background:var(--bg-nav);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;"><i class="fas fa-globe"></i></div><div><div style="font-weight:700;font-size:15px;color:#333;">Global Channel</div><div style="font-size:13px;color:var(--text-muted);">Join the public conversation</div></div>';
+            list.appendChild(globalDiv);
+            Object.values(usersCache).forEach(u => {
+                if(u.uid === currentUser.uid) return;
+                const div = document.createElement('div');
+                div.className = 'chat-list-item';
+                div.onclick = () => openChat(u.uid, u.username);
+                div.innerHTML = '<img src="' + (u.photo || DEFAULT_AVATAR) + '" style="width:50px;height:50px;border-radius:50%;object-fit:cover;"><div><div style="font-weight:700;font-size:15px;color:#333;">' + u.username + '</div><div style="font-size:13px;color:var(--text-muted);">Tap to chat</div></div>';
+                list.appendChild(div);
+            });
+        }
+
+        // --- CHAT LOGIC ---
+        window.openChat = (targetUid, targetName) => {
+            const overlay = document.getElementById('chat-overlay');
+            const title = document.getElementById('chat-title');
+            const msgsDiv = document.getElementById('chat-msgs');
+            overlay.classList.remove('hidden');
+            msgsDiv.innerHTML = '';
+            let dbPath = '';
+            if(targetUid === 'global') {
+                activeChatId = 'global';
+                title.innerText = "Global Channel";
+                dbPath = 'chats';
+            } else {
+                const uids = [currentUser.uid, targetUid].sort();
+                activeChatId = `private_${uids[0]}_${uids[1]}`;
+                title.innerText = targetName || "Private Chat";
+                dbPath = `private_chats/${activeChatId}`;
+            }
+            if(chatListenerRef) off(chatListenerRef);
+            chatListenerRef = query(ref(db, dbPath), limitToLast(50));
+            onValue(chatListenerRef, snap => {
+                msgsDiv.innerHTML = '';
+                const data = snap.val();
+                if(data) {
+                    Object.values(data).forEach(msg => {
+                        const isMine = msg.uid === currentUser.uid;
+                        const prefix = (!isMine && activeChatId === 'global') ? `<small style="color:#64748b;font-size:11px;font-weight:600">${msg.user}</small><br>` : '';
+                        msgsDiv.innerHTML += `<div class="bubble ${isMine ? 'mine' : 'theirs'}">${prefix}${msg.text}</div>`;
+                    });
+                    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+                }
+            });
+        };
+
+        window.closeChat = () => {
+            document.getElementById('chat-overlay').classList.add('hidden');
+            activeChatId = null;
+            if(chatListenerRef) off(chatListenerRef);
+        };
+
+        window.sendMsg = () => {
+            const inp = document.getElementById('chat-input');
+            const text = inp.value.trim();
+            if(!text || !activeChatId) return;
+            const senderName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+            const dbPath = activeChatId === 'global' ? 'chats' : `private_chats/${activeChatId}`;
+            push(ref(db, dbPath), { uid: currentUser.uid, user: senderName, text: text, timestamp: Date.now() });
+            inp.value = '';
+        };
+
+        function listenFollowing() { onValue(ref(db, `following/${currentUser.uid}`), snap => { followingCache = snap.val() || {}; }); }
+
+        window.toggleFollow = async (targetUid) => {
+            if(!targetUid || targetUid === currentUser.uid) return;
+            const isFollowing = followingCache[targetUid];
+            if(isFollowing) {
+                remove(ref(db, `following/${currentUser.uid}/${targetUid}`));
+                remove(ref(db, `followers/${targetUid}/${currentUser.uid}`));
+            } else {
+                set(ref(db, `following/${currentUser.uid}/${targetUid}`), true);
+                set(ref(db, `followers/${targetUid}/${currentUser.uid}`), true);
+                sendNotif(targetUid, "started following you");
+                await awardPoints(currentUser.uid, POINTS.FOLLOW, `follow ${targetUid}`);
+                showToast(`+${POINTS.FOLLOW} poin (menambah teman)`);
+            }
+        };
+
+        function listenFeed() {
+            const q = query(ref(db, 'posts'), limitToLast(30));
+            onValue(q, (snapshot) => {
+                const container = document.getElementById('feed-container');
+                container.innerHTML = "";
+                const data = snapshot.val();
+                if(!data) { container.innerHTML = "<div style='text-align:center; margin-top:50px; color:gray; font-size:14px;'>Nothing here yet.</div>"; return; }
+                const posts = Object.entries(data).reverse();
+                posts.forEach(([pid, post]) => {
+                    const u = usersCache[post.uid] || {username: 'Loading...', photo: DEFAULT_AVATAR};
+                    const isLiked = post.likes && post.likes[currentUser.uid];
+                    let followBtnHtml = '';
+                    if(post.uid !== currentUser.uid) {
+                        const isFollowing = followingCache[post.uid];
+                        followBtnHtml = `<button class="btn-follow ${isFollowing ? 'following' : 'not-following'}" onclick="toggleFollow('${post.uid}')">${isFollowing ? 'Following' : 'Follow'}</button>`;
+                    }
+                    let commentsHtml = '';
+                    if(post.comments) {
+                        Object.values(post.comments).forEach(c => {
+                            commentsHtml += `<div class="comment-item"><b>${c.username}</b> ${c.text}</div>`;
+                        });
+                    }
+                    const div = document.createElement('div');
+                    div.className = 'post-card';
+                    div.innerHTML = `
+                        <div class="post-header">
+                            <img src="${u.photo || DEFAULT_AVATAR}" class="p-avatar">
+                            <div><div style="font-weight:700; color:#333; font-size:14px;">${u.username}</div></div>
+                            ${followBtnHtml}
+                        </div>
+                        <img src="${post.image}" class="post-img" ondblclick="toggleLike('${pid}', '${post.uid}')">
+                        <div class="post-actions">
+                            <i class="${isLiked ? 'fas' : 'far'} fa-heart action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${pid}', '${post.uid}')"></i>
+                            <i class="far fa-comment action-btn" onclick="toggleCommentSection('${pid}')"></i>
+                        </div>
+                        <div class="caption-area">
+                            <b>${u.username}</b> ${post.caption}
+                        </div>
+                        <div class="comment-section">
+                            <span class="comment-toggle" onclick="toggleCommentSection('${pid}')">
+                                ${post.comments ? `View all ${Object.keys(post.comments).length} comments` : 'Add a comment...'}
+                            </span>
+                            <div id="comments-${pid}" class="comment-list" style="display:none;">${commentsHtml}</div>
+                            <div id="input-${pid}" class="comment-input-box" style="display:none;">
+                                <input type="text" id="inp-${pid}" placeholder="Add a comment...">
+                                <button onclick="postComment('${pid}', '${post.uid}')">Post</button>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+        }
+
+        window.toggleLike = (pid, authorId) => {
+            const path = `posts/${pid}/likes/${currentUser.uid}`;
+            const btn = document.querySelector(`[onclick="toggleLike('${pid}', '${authorId}')"]`);
+            if(btn && btn.classList.contains('liked')) {
+                 remove(ref(db, path));
+            } else {
+                 set(ref(db, path), true);
+                 if(authorId !== currentUser.uid) sendNotif(authorId, "liked your post");
+            }
+        };
+
+        window.toggleCommentSection = (pid) => {
+            const list = document.getElementById(`comments-${pid}`);
+            const box = document.getElementById(`input-${pid}`);
+            const isHidden = list.style.display === 'none';
+            list.style.display = isHidden ? 'block' : 'none';
+            box.style.display = isHidden ? 'flex' : 'none';
+        };
+
+        window.postComment = async (pid, ownerUid) => {
+            const inp = document.getElementById(`inp-${pid}`);
+            const text = inp.value.trim();
+            if(!text) return;
+            const name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+            push(ref(db, `posts/${pid}/comments`), { text: text, uid: currentUser.uid, username: name, timestamp: Date.now() });
+            if(ownerUid !== currentUser.uid) sendNotif(ownerUid, `commented: ${text}`);
+            inp.value = '';
+            await awardPoints(currentUser.uid, POINTS.COMMENT, `comment ${pid}`);
+            showToast(`+${POINTS.COMMENT} poin (berkomentar)`);
+        };
+
+        window.previewUpload = async (input) => {
+            if(input.files[0]) {
+                const b64 = await processImage(input.files[0]);
+                document.getElementById('upload-preview-img').src = b64;
+                document.getElementById('upload-preview-img').style.display = 'block';
+                document.querySelector('.upload-area i').style.display = 'none';
+                document.querySelector('.upload-area span').style.display = 'none';
+            }
+        };
+
+        window.uploadPost = async () => {
+            const file = document.getElementById('post-file').files[0];
+            const caption = document.getElementById('post-caption').value;
+            if(!file) return alert("Please select an image.");
+            document.getElementById('post-btn-text').style.display = 'none';
+            document.getElementById('post-loader').style.display = 'block';
+            try {
+                const base64 = await processImage(file, 800, 0.7);
+                await push(ref(db, 'posts'), { uid: currentUser.uid, image: base64, caption: caption, timestamp: Date.now() });
+                document.getElementById('post-file').value = "";
+                document.getElementById('post-caption').value = "";
+                document.getElementById('upload-preview-img').style.display = 'none';
+                document.querySelector('.upload-area i').style.display = 'block';
+                document.querySelector('.upload-area span').style.display = 'block';
+                nav('view-home');
+                await awardPoints(currentUser.uid, POINTS.POST, `post`);
+                showToast(`+${POINTS.POST} poin (posting)`);
+            } catch(e) { alert(e.message); }
+            document.getElementById('post-btn-text').style.display = 'block';
+            document.getElementById('post-loader').style.display = 'none';
+        };
+
+        function listenStories() {
+            const q = query(ref(db, 'stories'), limitToLast(20));
+            onValue(q, snap => {
+                const container = document.getElementById('stories-container');
+                const btn = container.firstElementChild.cloneNode(true);
+                container.innerHTML = ''; container.appendChild(btn);
+                const data = snap.val(); if(!data) return;
+                Object.values(data).reverse().forEach(s => { container.innerHTML += `<div class="story-card"><img src="${s.image}"></div>`; });
+            });
+        }
+        window.uploadStory = async (input) => {
+            if(input.files[0]) {
+                const b64 = await processImage(input.files[0], 300, 0.5);
+                await push(ref(db, 'stories'), { uid: currentUser.uid, image: b64, timestamp: Date.now() });
+            }
+        };
+
+        function loadProfile() {
+            if(!currentUser) return;
+            const dbUser = usersCache[currentUser.uid];
+            const finalName = (dbUser && dbUser.username) ? dbUser.username : (currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User'));
+            const finalPhoto = (dbUser && dbUser.photo) ? dbUser.photo : DEFAULT_AVATAR;
+            document.getElementById('profile-name').innerText = finalName;
+            document.getElementById('profile-img').src = finalPhoto;
+            onValue(query(ref(db, 'posts'), orderByKey()), snap => {
+                const grid = document.getElementById('profile-grid'); grid.innerHTML = '';
+                let count = 0; const data = snap.val();
+                if(data) Object.values(data).reverse().forEach(p => { if(p.uid === currentUser.uid) { count++; grid.innerHTML += `<img src="${p.image}" class="grid-item">`; } });
+                document.getElementById('stat-posts').innerText = count;
+            });
+            onValue(ref(db, `followers/${currentUser.uid}`), snap => document.getElementById('stat-followers').innerText = snap.exists() ? Object.keys(snap.val()).length : 0);
+            onValue(ref(db, `following/${currentUser.uid}`), snap => document.getElementById('stat-following').innerText = snap.exists() ? Object.keys(snap.val()).length : 0);
+        }
+
+        window.uploadProfilePic = async (input) => {
+            if(input.files[0]) {
+                const base64 = await processImage(input.files[0], 200, 0.5);
+                await update(ref(db, `users/${currentUser.uid}`), { photo: base64 });
+                document.getElementById('profile-img').src = base64;
+                loadProfile();
+                listenFeed();
+            }
+        };
+
+        window.toggleEditName = async () => {
+            const inp = document.getElementById('edit-name-input');
+            const h2 = document.getElementById('profile-name');
+            if(inp.classList.contains('hidden')) {
+                inp.classList.remove('hidden'); h2.classList.add('hidden'); inp.value = h2.innerText; inp.focus();
+            } else {
+                if(inp.value.trim()) {
+                    await updateProfile(currentUser, { displayName: inp.value });
+                    await update(ref(db, `users/${currentUser.uid}`), { username: inp.value });
+                    loadProfile();
+                    listenFeed();
+                }
+                inp.classList.add('hidden'); h2.classList.remove('hidden');
+            }
+        };
+
+        function sendNotif(targetId, text) {
+            const name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Someone');
+            push(ref(db, `notifications/${targetId}`), { text: `${name} ${text}`, timestamp: Date.now() });
+        }
+
+        function listenNotifications() {
+            onValue(ref(db, `notifications/${currentUser.uid}`), snap => {
+                const div = document.getElementById('notif-list');
+                const badge = document.getElementById('badge-notif');
+                div.innerHTML = '';
+                const data = snap.val();
+                if(data) {
+                    const count = Object.keys(data).length;
+                    if(currentView !== 'view-notif') {
+                        badge.innerText = count;
+                        badge.classList.remove('hidden');
+                    }
+                    Object.values(data).reverse().forEach(n => {
+                        div.innerHTML += `<div class="notif-row"><div class="notif-icon"><i class="fas fa-bolt"></i></div><div style="font-size:14px; color:#333;">${n.text}</div></div>`;
+                    });
+                } else {
+                    div.innerHTML = '<div style="padding:20px; text-align:center; color:gray; font-size:14px;">No recent activity.</div>';
+                    badge.classList.add('hidden');
+                }
+            });
+        }
+
+        function listenGlobalChatBadge() {
+            let firstLoad = true;
+            onValue(query(ref(db, 'chats'), limitToLast(1)), snap => {
+                if(firstLoad) { firstLoad = false; return; }
+                if(currentView !== 'view-chat' && activeChatId !== 'global') {
+                    chatCount++;
+                    const badge = document.getElementById('badge-chat');
+                    badge.innerText = chatCount;
+                    badge.classList.remove('hidden');
+                }
+            });
+        }
+
+        // ============ MODAL / WALLET UI HELPERS ============
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
+        }
+
+        function closeModal() {
+            stopScanner();
+            const root = document.getElementById('modal-root');
+            if (root) root.innerHTML = '';
+            pendingTransferRecipient = null;
+        }
+
+        function escHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function openModal(innerHtml) {
+            const root = document.getElementById('modal-root');
+            root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal-card"><button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>${innerHtml}</div></div>`;
+        }
+
+        async function findUserByAcctId(acctId) {
+            const idxSnap = await get(ref(db, 'account_index'));
+            const idx = idxSnap.val() || {};
+            for (const uid in idx) {
+                if (idx[uid] === acctId) {
+                    const userSnap = await get(ref(db, `users/${uid}`));
+                    const u = userSnap.val() || {};
+                    return { uid: uid, username: u.username || 'User', photo: u.photo || DEFAULT_AVATAR, acctId: acctId };
+                }
+            }
+            return null;
+        }
+
+        // ===== MY QR MODAL =====
+        window.openMyQRModal = () => {
+            const payload = JSON.stringify({ acctId: myAcctId, uid: currentUser.uid });
+            openModal(`
+                <div class="modal-title">Kode QR Akun Saya</div>
+                <div class="modal-sub">Tunjukkan QR ini untuk menerima transfer poin.</div>
+                <div style="text-align:center;">
+                    <div id="my-qr-box" class="qr-box"></div>
+                    <div class="acct-id-big">${myAcctId}</div>
+                    <div style="font-size:13px; color:var(--text-muted); margin-bottom:6px;">${escHtml(currentUser.displayName || 'User')}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">Saldo: <b id="qr-balance">${myPoints.toLocaleString('id-ID')}</b> poin</div>
+                </div>
+                <button class="btn-main" style="margin-top:18px;" onclick="closeModal()">Tutup</button>
+            `);
+            new QRCode(document.getElementById('my-qr-box'), { text: payload, width: 200, height: 200, colorDark: '#1e293b', colorLight: '#ffffff' });
+        };
+
+        // ===== QR SCANNER MODAL =====
+        window.openQRScanner = () => {
+            openModal(`
+                <div class="modal-title"><i class="fas fa-camera"></i> Scan QR Penerima</div>
+                <div class="modal-sub">Arahkan kamera ke QR akun tujuan untuk transfer poin.</div>
+                <div class="scan-video-box">
+                    <video id="scanner-video" playsinline muted></video>
+                    <div class="scan-overlay-frame"></div>
+                </div>
+                <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:10px;">Tidak bisa scan? Masukkan ID akun manual.</p>
+                <div style="display:flex; gap:8px;">
+                    <input id="manual-acct-id" class="auth-input" placeholder="6-digit ID Akun" maxlength="6" inputmode="numeric" style="text-align:center; letter-spacing:4px; font-family:monospace; font-size:16px;">
+                    <button class="btn-main" style="width:auto; margin:0; padding:0 16px;" onclick="manualLookup()">Lanjut</button>
+                </div>
+            `);
+            startScanner();
+        };
+
+        async function startScanner() {
+            try {
+                scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.getElementById('scanner-video');
+                if (!video) { return; }
+                video.srcObject = scannerStream;
+                video.setAttribute('playsinline', true);
+                video.play();
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                const tick = () => {
+                    if (!scannerStream) return;
+                    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        try {
+                            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const code = (window.jsQR || window.JsQR)(imgData.data, imgData.width, imgData.height);
+                            if (code && code.data) { handleScannedPayload(code.data); return; }
+                        } catch (err) { /* ignore frame errors */ }
+                    }
+                    scannerRAF = requestAnimationFrame(tick);
+                };
+                tick();
+            } catch (e) {
+                const box = document.querySelector('.scan-video-box');
+                if (box) box.innerHTML = '<div style="color:#fff; padding:20px; text-align:center; font-size:13px;">Kamera tidak tersedia.<br>Silakan masukkan ID akun manual di bawah.</div>';
+            }
+        }
+
+        function stopScanner() {
+            if (scannerRAF) { cancelAnimationFrame(scannerRAF); scannerRAF = null; }
+            if (scannerStream) {
+                scannerStream.getTracks().forEach(t => t.stop());
+                scannerStream = null;
+            }
+        }
+
+        function handleScannedPayload(raw) {
+            let acctId = null, uid = null;
+            try {
+                const parsed = JSON.parse(raw);
+                acctId = parsed.acctId;
+                uid = parsed.uid;
+            } catch (e) {
+                if (/^\d{6}$/.test(raw)) acctId = raw;
+            }
+            if (!acctId) { showToast('QR tidak dikenali'); return; }
+            stopScanner();
+            proceedToRecipient(acctId, uid);
+        }
+
+        window.manualLookup = async () => {
+            const id = document.getElementById('manual-acct-id').value.trim();
+            if (!/^\d{6}$/.test(id)) { showToast('ID harus 6 digit angka'); return; }
+            await proceedToRecipient(id);
+        };
+
+        async function proceedToRecipient(acctId, knownUid) {
+            stopScanner();
+            let recipient;
+            if (knownUid) {
+                const uSnap = await get(ref(db, `users/${knownUid}`));
+                const u = uSnap.val() || {};
+                recipient = { uid: knownUid, username: u.username || 'User', photo: u.photo || DEFAULT_AVATAR, acctId: acctId };
+            } else {
+                recipient = await findUserByAcctId(acctId);
+            }
+            if (!recipient) { showToast('Akun tujuan tidak ditemukan'); return; }
+            if (recipient.uid === currentUser.uid) { showToast('Tidak bisa transfer ke akun sendiri'); return; }
+            pendingTransferRecipient = recipient;
+            openAmountModal(recipient);
+        }
+
+        // ===== AMOUNT MODAL =====
+        function openAmountModal(recipient) {
+            openModal(`
+                <div class="modal-title">Transfer Poin</div>
+                <div class="modal-sub">Masukkan nominal poin yang akan dikirim.</div>
+                <div class="recipient-box">
+                    <img src="${escHtml(recipient.photo)}">
+                    <div>
+                        <div style="font-weight:700; font-size:14px; color:#333;">${escHtml(recipient.username)}</div>
+                        <div style="font-size:12px; color:var(--text-muted); font-family:monospace;">ID: ${escHtml(recipient.acctId)}</div>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Nominal (poin)</label>
+                    <input id="transfer-amount" class="auth-input" type="number" inputmode="numeric" placeholder="0" style="font-size:20px; text-align:center; font-weight:700;">
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">Saldo Anda: <b>${myPoints.toLocaleString('id-ID')}</b> poin</div>
+                </div>
+                <button class="btn-main" onclick="goToPinStep()">Lanjut</button>
+            `);
+        }
+
+        window.goToPinStep = () => {
+            const amt = parseInt(document.getElementById('transfer-amount').value, 10);
+            if (!amt || amt <= 0) { showToast('Masukkan nominal valid'); return; }
+            if (amt > myPoints) { showToast('Saldo tidak cukup'); return; }
+            openPinModal(amt);
+        };
+
+        // ===== PIN MODAL =====
+        function openPinModal(amount) {
+            const recipient = pendingTransferRecipient;
+            openModal(`
+                <div class="modal-title">Masukkan PIN Transaksi</div>
+                <div class="modal-sub">Masukkan 4 digit PIN untuk konfirmasi transfer <b>${amount.toLocaleString('id-ID')}</b> poin ke ${escHtml(recipient.username)}.</div>
+                <div class="pin-dots">
+                    <input id="pin-0" class="auth-input" maxlength="1" inputmode="numeric">
+                    <input id="pin-1" class="auth-input" maxlength="1" inputmode="numeric">
+                    <input id="pin-2" class="auth-input" maxlength="1" inputmode="numeric">
+                    <input id="pin-3" class="auth-input" maxlength="1" inputmode="numeric">
+                </div>
+                <p id="pin-error" style="color:#ef4444; font-size:13px; text-align:center; min-height:18px; margin:0 0 8px 0;"></p>
+                <button class="btn-main" onclick="confirmTransfer(${amount})">Kirim Poin</button>
+                <button class="btn-sec btn-main" style="margin-top:8px;" onclick="openSetPinModal()">Belum punya PIN? Buat di sini</button>
+            `);
+            setupPinInputs();
+        }
+
+        function setupPinInputs() {
+            const inputs = ['pin-0','pin-1','pin-2','pin-3'].map(id => document.getElementById(id));
+            inputs.forEach((inp, i) => {
+                inp.addEventListener('input', () => {
+                    inp.value = inp.value.replace(/\D/g, '');
+                    if (inp.value && i < inputs.length - 1) inputs[i + 1].focus();
+                });
+                inp.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !inp.value && i > 0) inputs[i - 1].focus();
+                });
+            });
+            inputs[0].focus();
+        }
+
+        function readPin() {
+            return ['pin-0','pin-1','pin-2','pin-3'].map(id => document.getElementById(id).value).join('');
+        }
+
+        // ===== SET PIN MODAL =====
+        window.openSetPinModal = () => {
+            openModal(`
+                <div class="modal-title">Buat PIN Transaksi</div>
+                <div class="modal-sub">Buat 4 digit PIN untuk mengamankan transfer poin Anda.</div>
+                <div class="pin-dots">
+                    <input id="newpin-0" class="auth-input" maxlength="1" inputmode="numeric">
+                    <input id="newpin-1" class="auth-input" maxlength="1" inputmode="numeric">
+                    <input id="newpin-2" class="auth-input" maxlength="1" inputmode="numeric">
+                    <input id="newpin-3" class="auth-input" maxlength="1" inputmode="numeric">
+                </div>
+                <p id="setpin-error" style="color:#ef4444; font-size:13px; text-align:center; min-height:18px; margin:0 0 8px 0;"></p>
+                <button class="btn-main" onclick="saveNewPin()">Simpan PIN</button>
+            `);
+            const inputs = ['newpin-0','newpin-1','newpin-2','newpin-3'].map(id => document.getElementById(id));
+            inputs.forEach((inp, i) => {
+                inp.addEventListener('input', () => {
+                    inp.value = inp.value.replace(/\D/g, '');
+                    if (inp.value && i < inputs.length - 1) inputs[i + 1].focus();
+                });
+            });
+            inputs[0].focus();
+        };
+
+        window.saveNewPin = async () => {
+            const pin = ['newpin-0','newpin-1','newpin-2','newpin-3'].map(id => document.getElementById(id).value).join('');
+            const err = document.getElementById('setpin-error');
+            if (!/^\d{4}$/.test(pin)) { err.innerText = 'PIN harus 4 digit angka'; return; }
+            await set(ref(db, `wallets/${currentUser.uid}/pin`), pin);
+            showToast('PIN berhasil dibuat');
+            closeModal();
+        };
+
+        // ===== CONFIRM TRANSFER =====
+        window.confirmTransfer = async (amount) => {
+            const errEl = document.getElementById('pin-error');
+            const enteredPin = readPin();
+            const recipient = pendingTransferRecipient;
+            if (!recipient) { closeModal(); return; }
+            if (!/^\d{4}$/.test(enteredPin)) { errEl.innerText = 'PIN belum lengkap'; return; }
+            const pinSnap = await get(ref(db, `wallets/${currentUser.uid}/pin`));
+            const storedPin = pinSnap.val();
+            if (!storedPin) { errEl.innerText = 'Belum punya PIN. Buat dulu.'; openSetPinModal(); return; }
+            if (enteredPin !== storedPin) { errEl.innerText = 'PIN salah'; return; }
+            const balSnap = await get(ref(db, `wallets/${currentUser.uid}/balance`));
+            const bal = Number(balSnap.val()) || 0;
+            if (amount > bal) { errEl.innerText = 'Saldo tidak cukup'; return; }
+            // atomic debit sender (abort if would go negative)
+            const debitRes = await runTransaction(ref(db, `wallets/${currentUser.uid}/balance`), (cur) => {
+                const v = (cur || 0) - amount;
+                return v < 0 ? undefined : v;
+            });
+            if (debitRes.committed === false || debitRes.snapshot.val() === null) {
+                errEl.innerText = 'Saldo tidak cukup';
+                return;
+            }
+            // credit recipient
+            await runTransaction(ref(db, `wallets/${recipient.uid}/balance`), (cur) => (cur || 0) + amount);
+            const ts = Date.now();
+            await push(ref(db, `wallets/${currentUser.uid}/history`), { type: 'transfer_out', amount: amount, to: recipient.uid, toName: recipient.username, timestamp: ts });
+            await push(ref(db, `wallets/${recipient.uid}/history`), { type: 'transfer_in', amount: amount, from: currentUser.uid, fromName: currentUser.displayName || 'User', timestamp: ts });
+            sendNotif(recipient.uid, `mengirim ${amount} poin ke Anda`);
+            showToast(`Transfer ${amount} poin berhasil!`);
+            pendingTransferRecipient = null;
+            closeModal();
+        };
+
+        // ===== TRANSACTION HISTORY MODAL =====
+        window.openTxnHistoryModal = () => {
+            openModal(`
+                <div class="modal-title">Riwayat Transaksi</div>
+                <div class="modal-sub">Aktifitas poin Anda.</div>
+                <div id="txn-history-list" style="min-height:60px;"><div style="text-align:center; color:var(--text-muted); padding:20px; font-size:13px;">Memuat...</div></div>
+            `);
+            onValue(ref(db, `wallets/${currentUser.uid}/history`), snap => {
+                const list = document.getElementById('txn-history-list');
+                if (!list) return;
+                const data = snap.val();
+                if (!data) { list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px; font-size:13px;">Belum ada transaksi.</div>'; return; }
+                list.innerHTML = '';
+                Object.values(data).reverse().forEach(t => {
+                    let label = '', cls = '', sign = '';
+                    if (t.type === 'reward') { label = `Reward: ${escHtml(t.reason||'aktivitas')}`; cls = 'in'; sign = '+'; }
+                    else if (t.type === 'transfer_in') { label = `Diterima dari ${escHtml(t.fromName||'User')}`; cls = 'in'; sign = '+'; }
+                    else if (t.type === 'transfer_out') { label = `Dikirim ke ${escHtml(t.toName||'User')}`; cls = 'out'; sign = '-'; }
+                    const d = new Date(t.timestamp);
+                    list.innerHTML += `
+                        <div class="txn-history-item">
+                            <div>
+                                <div style="font-size:13px; color:#333;">${label}</div>
+                                <div style="font-size:11px; color:var(--text-muted);">${d.toLocaleString('id-ID')}</div>
+                            </div>
+                            <div class="txn-amount ${cls}">${sign}${Number(t.amount).toLocaleString('id-ID')}</div>
+                        </div>
+                    `;
+                });
+            });
+        };
+
+        // ===== EDIT PROFILE MODAL =====
+        window.openEditProfileModal = async () => {
+            const pSnap = await get(ref(db, `profiles/${currentUser.uid}`));
+            const p = pSnap.val() || { fullname: '', phone: '', email: '', gender: '' };
+            openModal(`
+                <div class="modal-title">Edit Profil Lengkap</div>
+                <div class="modal-sub">Lengkapi data akun virtual Anda.</div>
+                <div class="field-group">
+                    <label class="field-label">Nama Lengkap</label>
+                    <input id="ep-fullname" class="auth-input" value="${escHtml(p.fullname || '')}" placeholder="Nama lengkap">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Nomor HP</label>
+                    <input id="ep-phone" class="auth-input" value="${escHtml(p.phone || '')}" placeholder="08xxxxxxxxxx" inputmode="tel">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Email (opsional)</label>
+                    <input id="ep-email" class="auth-input" value="${escHtml(p.email || '')}" placeholder="email@contoh.com" inputmode="email">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Jenis Kelamin</label>
+                    <div class="radio-row">
+                        <label><input type="radio" name="ep-gender" value="Laki-laki" ${p.gender==='Laki-laki'?'checked':''}><span>Laki-laki</span></label>
+                        <label><input type="radio" name="ep-gender" value="Perempuan" ${p.gender==='Perempuan'?'checked':''}><span>Perempuan</span></label>
+                    </div>
+                </div>
+                <p id="ep-error" style="color:#ef4444; font-size:13px; text-align:center; min-height:18px; margin:0 0 8px 0;"></p>
+                <button class="btn-main" onclick="saveEditProfile()">Simpan Profil</button>
+            `);
+        };
+
+        window.saveEditProfile = async () => {
+            const fullname = document.getElementById('ep-fullname').value.trim();
+            const phone = document.getElementById('ep-phone').value.trim();
+            const email = document.getElementById('ep-email').value.trim();
+            const genderEl = document.querySelector('input[name="ep-gender"]:checked');
+            const gender = genderEl ? genderEl.value : '';
+            const err = document.getElementById('ep-error');
+            if (!fullname) { err.innerText = 'Nama lengkap wajib diisi'; return; }
+            await update(ref(db, `profiles/${currentUser.uid}`), { fullname, phone, email, gender });
+            await updateProfile(currentUser, { displayName: fullname });
+            await update(ref(db, `users/${currentUser.uid}`), { username: fullname });
+            showToast('Profil tersimpan');
+            closeModal();
+            loadProfile();
+            listenFeed();
+        };
+    </script>
+</body>
+</html>
