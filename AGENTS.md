@@ -1,4 +1,4 @@
-# JavaGoat (BRUANG) — Project Notes
+# BERUANG — Project Notes
 
 ## Overview
 Single-file Firebase social app (`index.html`) with auth, feed, stories, chat,
