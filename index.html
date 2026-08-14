@@ -230,6 +230,7 @@
                 <div style="display:flex; gap:8px; justify-content:center; margin-top: 12px;">
                     <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="toggleEditName()">Edit Name</button>
                     <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="openEditProfileModal()">Full Profile</button>
+                    <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600; border-color: var(--accent-red); color: var(--accent-red);" onclick="openUpgradeModal()">Upgrade Akun</button>
                 </div>
                 <input id="edit-name-input" class="auth-input hidden" style="margin-top: 15px; text-align: center;">
                 <div class="stats-row">
@@ -329,25 +330,31 @@
         // --- Wallet / Points / Account state ---
         let myPoints = 0;
         let myAcctId = '000000';
+        let myTier = 'Star';
+        let myUsage = { date: '', posts: 0, comments: 0 }; // daily counters
         let scannerStream = null;
         let scannerRAF = null;
         let pendingTransferRecipient = null; // {uid, username, photo, acctId}
 
         // ===== POINTS CONFIG =====
         const POINTS = { COMMENT: 50, POST: 20, FOLLOW: 10 };
-        const RANKS = [
-            { name: 'Star',   min: 0,     icon: 'fa-star',   color: '#64748b' },
-            { name: 'Bronze', min: 500,   icon: 'fa-medal',  color: '#9a3412' },
-            { name: 'Silver', min: 2000,  icon: 'fa-award',  color: '#475569' },
-            { name: 'Gold',   min: 5000,  icon: 'fa-trophy', color: '#b45309' },
-            { name: 'Master', min: 15000, icon: 'fa-crown',  color: '#6d28d9' }
+        // TIERS: purchased account tiers with upgrade price + daily activity limits
+        // postLimit / commentLimit of Infinity = unlimited (Master)
+        const TIERS = [
+            { name: 'Star',   price: 0,       postLimit: 5,        commentLimit: 5,        icon: 'fa-star',   color: '#64748b' },
+            { name: 'Bronze', price: 5000,    postLimit: 10,       commentLimit: 10,       icon: 'fa-medal',  color: '#9a3412' },
+            { name: 'Silver', price: 9000,    postLimit: 20,       commentLimit: 20,       icon: 'fa-award',  color: '#475569' },
+            { name: 'Gold',   price: 250000,  postLimit: 50,       commentLimit: 50,       icon: 'fa-trophy', color: '#b45309' },
+            { name: 'Master', price: 1000000, postLimit: Infinity, commentLimit: Infinity, icon: 'fa-crown',  color: '#6d28d9' }
         ];
 
-        function getRank(points) {
-            let r = RANKS[0];
-            for (const rank of RANKS) if (points >= rank.min) r = rank;
-            return r;
+        function getTier(name) {
+            return TIERS.find(t => t.name === name) || TIERS[0];
         }
+        function getTierIndex(name) {
+            return TIERS.findIndex(t => t.name === name);
+        }
+        const todayStr = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
         // ===== WALLET / ACCOUNT ID HELPERS =====
         function genAcctId() {
@@ -378,8 +385,14 @@
             const snap = await get(wRef);
             if (!snap.exists()) {
                 const acctId = await genUniqueAcctId();
-                await set(wRef, { balance: 0, acctId: acctId });
+                await set(wRef, { balance: 0, acctId: acctId, tier: 'Star', usage: { date: todayStr(), posts: 0, comments: 0 } });
                 await set(ref(db, `account_index/${uid}`), acctId);
+            } else {
+                const w = snap.val();
+                const patch = {};
+                if (!w.tier) patch.tier = 'Star';
+                if (!w.usage) patch.usage = { date: todayStr(), posts: 0, comments: 0 };
+                if (Object.keys(patch).length) await update(wRef, patch);
             }
             // ensure profile fields exist
             const pRef = ref(db, `profiles/${uid}`);
@@ -394,23 +407,50 @@
         function listenMyWallet() {
             if (!currentUser) return;
             onValue(ref(db, `wallets/${currentUser.uid}`), snap => {
-                const w = snap.val() || { balance: 0, acctId: '000000' };
+                const w = snap.val() || { balance: 0, acctId: '000000', tier: 'Star', usage: { date: todayStr(), posts: 0, comments: 0 } };
                 myPoints = Number(w.balance) || 0;
                 myAcctId = w.acctId || '000000';
+                myTier = w.tier || 'Star';
+                // daily usage: reset if date changed
+                const u = w.usage || {};
+                if (u.date !== todayStr()) {
+                    myUsage = { date: todayStr(), posts: 0, comments: 0 };
+                } else {
+                    myUsage = { date: u.date, posts: Number(u.posts) || 0, comments: Number(u.comments) || 0 };
+                }
                 const balEl = document.getElementById('wallet-balance');
                 const idEl = document.getElementById('wallet-acct-id');
                 if (balEl) balEl.innerText = myPoints.toLocaleString('id-ID');
                 if (idEl) idEl.innerText = myAcctId;
-                renderRankPill(myPoints);
+                renderRankPill(myTier);
             });
         }
 
-        function renderRankPill(points) {
+        function renderRankPill(tier) {
             const el = document.getElementById('rank-pill');
             if (!el) return;
-            const r = getRank(points);
+            const r = getTier(tier);
             el.className = `rank-badge-pill rank-${r.name}`;
             el.innerHTML = `<i class="fas ${r.icon}"></i> ${r.name}`;
+        }
+
+        // ===== DAILY USAGE / LIMIT CHECKS =====
+        // Returns { ok, used, limit } for the given action ('posts' | 'comments')
+        function checkLimit(action) {
+            const tier = getTier(myTier);
+            const limit = action === 'posts' ? tier.postLimit : tier.commentLimit;
+            const used = action === 'posts' ? myUsage.posts : myUsage.comments;
+            if (limit === Infinity) return { ok: true, used: used, limit: Infinity };
+            return { ok: used < limit, used: used, limit: limit };
+        }
+
+        // Increment today's counter for an action and persist (resets date if needed)
+        async function recordUsage(action) {
+            if (myUsage.date !== todayStr()) myUsage = { date: todayStr(), posts: 0, comments: 0 };
+            if (action === 'posts') myUsage.posts += 1; else myUsage.comments += 1;
+            await update(ref(db, `wallets/${currentUser.uid}/usage`), {
+                date: myUsage.date, posts: myUsage.posts, comments: myUsage.comments
+            });
         }
 
         // Award points atomically
@@ -701,12 +741,19 @@
             const inp = document.getElementById(`inp-${pid}`);
             const text = inp.value.trim();
             if(!text) return;
+            const c = checkLimit('comments');
+            if (!c.ok) {
+                const tier = getTier(myTier);
+                showToast(`Batas komentar harian tercapai (${c.limit}x untuk ${tier.name}). Upgrade akun untuk lebih.`);
+                return;
+            }
             const name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
             push(ref(db, `posts/${pid}/comments`), { text: text, uid: currentUser.uid, username: name, timestamp: Date.now() });
             if(ownerUid !== currentUser.uid) sendNotif(ownerUid, `commented: ${text}`);
             inp.value = '';
+            await recordUsage('comments');
             await awardPoints(currentUser.uid, POINTS.COMMENT, `comment ${pid}`);
-            showToast(`+${POINTS.COMMENT} poin (berkomentar)`);
+            showToast(`+${POINTS.COMMENT} poin (berkomentar) · sisa ${c.limit === Infinity ? '∞' : (c.limit - c.used - 1)} hari ini`);
         };
 
         window.previewUpload = async (input) => {
@@ -723,6 +770,12 @@
             const file = document.getElementById('post-file').files[0];
             const caption = document.getElementById('post-caption').value;
             if(!file) return alert("Please select an image.");
+            const c = checkLimit('posts');
+            if (!c.ok) {
+                const tier = getTier(myTier);
+                showToast(`Batas posting harian tercapai (${c.limit}x untuk ${tier.name}). Upgrade akun untuk lebih.`);
+                return;
+            }
             document.getElementById('post-btn-text').style.display = 'none';
             document.getElementById('post-loader').style.display = 'block';
             try {
@@ -734,8 +787,9 @@
                 document.querySelector('.upload-area i').style.display = 'block';
                 document.querySelector('.upload-area span').style.display = 'block';
                 nav('view-home');
+                await recordUsage('posts');
                 await awardPoints(currentUser.uid, POINTS.POST, `post`);
-                showToast(`+${POINTS.POST} poin (posting)`);
+                showToast(`+${POINTS.POST} poin (posting) · sisa ${c.limit === Infinity ? '∞' : (c.limit - c.used - 1)} hari ini`);
             } catch(e) { alert(e.message); }
             document.getElementById('post-btn-text').style.display = 'block';
             document.getElementById('post-loader').style.display = 'none';
@@ -1121,6 +1175,90 @@
             closeModal();
         };
 
+        // ===== UPGRADE TIER MODAL =====
+        window.openUpgradeModal = () => {
+            const curIdx = getTierIndex(myTier);
+            let rows = '';
+            TIERS.forEach((t, i) => {
+                const isCurrent = t.name === myTier;
+                const isOwned = i <= curIdx;
+                const canBuy = i > curIdx && myPoints >= t.price;
+                let actionHtml = '';
+                if (isCurrent) {
+                    actionHtml = '<span style="font-size:12px; font-weight:700; color:#16a34a;"><i class="fas fa-check-circle"></i> Aktif</span>';
+                } else if (isOwned) {
+                    actionHtml = `<button class="btn-main" style="width:auto; margin:0; padding:6px 14px; font-size:12px;" onclick="switchTier('${t.name}')">Gunakan</button>`;
+                } else if (canBuy) {
+                    actionHtml = `<button class="btn-main" style="width:auto; margin:0; padding:6px 14px; font-size:12px;" onclick="confirmBuyTier('${t.name}')">Upgrade</button>`;
+                } else {
+                    actionHtml = `<span style="font-size:12px; color:var(--text-muted);">Poin kurang</span>`;
+                }
+                const limitTxt = t.postLimit === Infinity ? 'Unlimited' : `${t.postLimit}x/hari`;
+                rows += `
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--border); border-radius:14px; margin-bottom:10px; ${isCurrent ? 'border-color:var(--bg-nav); background:#fffbeb;' : ''}">
+                        <div class="rank-badge-pill rank-${t.name}" style="margin:0; min-width:46px; justify-content:center;"><i class="fas ${t.icon}"></i></div>
+                        <div style="flex:1;">
+                            <div style="font-weight:700; font-size:14px; color:#333;">${t.name}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">Posting & Komentar: ${limitTxt}</div>
+                            <div style="font-size:12px; color:#333; margin-top:2px;">Harga: <b>${t.price === 0 ? 'Gratis' : t.price.toLocaleString('id-ID') + ' poin'}</b></div>
+                        </div>
+                        <div>${actionHtml}</div>
+                    </div>
+                `;
+            });
+            openModal(`
+                <div class="modal-title"><i class="fas fa-crown"></i> Upgrade Akun</div>
+                <div class="modal-sub">Tingkatkan akun untuk batas aktivitas harian lebih besar. Saldo Anda: <b>${myPoints.toLocaleString('id-ID')}</b> poin.</div>
+                ${rows}
+                <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:8px;">Batas harian direset setiap hari (00:00 UTC).</p>
+            `);
+        };
+
+        window.confirmBuyTier = (tierName) => {
+            const t = getTier(tierName);
+            if (getTierIndex(tierName) <= getTierIndex(myTier)) return;
+            if (myPoints < t.price) { showToast('Poin tidak cukup'); return; }
+            openModal(`
+                <div class="modal-title">Konfirmasi Upgrade</div>
+                <div class="modal-sub">Anda akan upgrade ke <b>${t.name}</b> seharga <b>${t.price.toLocaleString('id-ID')}</b> poin.</div>
+                <div class="recipient-box">
+                    <div class="rank-badge-pill rank-${t.name}" style="margin:0; min-width:44px; justify-content:center;"><i class="fas ${t.icon}"></i></div>
+                    <div>
+                        <div style="font-weight:700; font-size:14px; color:#333;">${t.name}</div>
+                        <div style="font-size:12px; color:var(--text-muted);">${t.postLimit === Infinity ? 'Unlimited' : t.postLimit + 'x/hari'} posting & komentar</div>
+                    </div>
+                </div>
+                <p id="upg-error" style="color:#ef4444; font-size:13px; text-align:center; min-height:18px; margin:0 0 8px 0;"></p>
+                <button class="btn-main" onclick="buyTier('${tierName}')">Bayar ${t.price.toLocaleString('id-ID')} Poin</button>
+                <button class="btn-sec btn-main" style="margin-top:8px;" onclick="openUpgradeModal()">Batal</button>
+            `);
+        };
+
+        window.buyTier = async (tierName) => {
+            const errEl = document.getElementById('upg-error');
+            const t = getTier(tierName);
+            if (getTierIndex(tierName) <= getTierIndex(myTier)) { errEl.innerText = 'Tier sudah dimiliki'; return; }
+            if (myPoints < t.price) { errEl.innerText = 'Poin tidak cukup'; return; }
+            // atomic debit (abort if would go negative)
+            const res = await runTransaction(ref(db, `wallets/${currentUser.uid}/balance`), (cur) => {
+                const v = (cur || 0) - t.price;
+                return v < 0 ? undefined : v;
+            });
+            if (res.committed === false || res.snapshot.val() === null) { errEl.innerText = 'Poin tidak cukup'; return; }
+            await update(ref(db, `wallets/${currentUser.uid}`), { tier: t.name });
+            await push(ref(db, `wallets/${currentUser.uid}/history`), { type: 'upgrade', amount: t.price, tier: t.name, timestamp: Date.now() });
+            showToast(`Upgrade ke ${t.name} berhasil!`);
+            closeModal();
+        };
+
+        // Switch back to an already-owned lower tier (no cost)
+        window.switchTier = async (tierName) => {
+            if (getTierIndex(tierName) > getTierIndex(myTier)) return;
+            await update(ref(db, `wallets/${currentUser.uid}`), { tier: tierName });
+            showToast(`Akun diatur ke ${tierName}`);
+            closeModal();
+        };
+
         // ===== TRANSACTION HISTORY MODAL =====
         window.openTxnHistoryModal = () => {
             openModal(`
@@ -1139,6 +1277,7 @@
                     if (t.type === 'reward') { label = `Reward: ${escHtml(t.reason||'aktivitas')}`; cls = 'in'; sign = '+'; }
                     else if (t.type === 'transfer_in') { label = `Diterima dari ${escHtml(t.fromName||'User')}`; cls = 'in'; sign = '+'; }
                     else if (t.type === 'transfer_out') { label = `Dikirim ke ${escHtml(t.toName||'User')}`; cls = 'out'; sign = '-'; }
+                    else if (t.type === 'upgrade') { label = `Upgrade akun ke ${escHtml(t.tier||'tier')}`; cls = 'out'; sign = '-'; }
                     const d = new Date(t.timestamp);
                     list.innerHTML += `
                         <div class="txn-history-item">
