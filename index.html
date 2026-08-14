@@ -156,7 +156,7 @@
         <div class="auth-card">
             <div class="logo-text-lg">BERUANG</div>
             <p style="color:#666; margin-bottom:20px;">Connect & Share.</p>
-            <div class="auth-input-wrapper"><input type="email" id="email" class="auth-input" placeholder="Email Address"></div>
+            <div class="auth-input-wrapper"><input type="tel" id="phone" class="auth-input" placeholder="Nomor HP (contoh: 081234567890)" inputmode="numeric" maxlength="15"></div>
             <div class="auth-input-wrapper"><input type="password" id="password" class="auth-input" placeholder="Password"></div>
             <button class="btn-primary" onclick="handleAuth()">
                 <span id="auth-text">Login / Join</span>
@@ -398,7 +398,7 @@
             const pRef = ref(db, `profiles/${uid}`);
             const pSnap = await get(pRef);
             if (!pSnap.exists()) {
-                const name = displayName || (currentUser && currentUser.email ? currentUser.email.split('@')[0] : 'User');
+                const name = displayName || fallbackName(currentUser);
                 await set(pRef, { fullname: name, phone: '', email: '', gender: '' });
             }
         }
@@ -466,27 +466,48 @@
         }
 
         // --- AUTH & LOGOUT ---
+        // Normalize a phone number into a safe synthetic email for Firebase Auth.
+        // Strips non-digits so "0812-3456.7890" -> "081234567890@beruang.phone"
+        function phoneToSyntheticEmail(raw) {
+            const digits = String(raw || '').replace(/\D/g, '');
+            return `${digits}@beruang.phone`;
+        }
+        function fallbackName(user) {
+            if (user && user.displayName) return user.displayName;
+            if (user && user.email) return user.email.split('@')[0];
+            return 'User';
+        }
         window.handleAuth = async () => {
-            const email = document.getElementById('email').value;
+            const phoneRaw = document.getElementById('phone').value.trim();
             const pass = document.getElementById('password').value;
             const btnText = document.getElementById('auth-text');
             const loader = document.getElementById('auth-loader');
             const errorP = document.getElementById('error-msg');
-            if(!email || !pass) return;
+            if(!phoneRaw || !pass) return;
+            const phoneDigits = phoneRaw.replace(/\D/g, '');
+            if (phoneDigits.length < 8) { errorP.innerText = 'Nomor HP tidak valid'; return; }
+            const email = phoneToSyntheticEmail(phoneRaw);
             btnText.style.display = 'none';
             loader.style.display = 'block';
             errorP.innerText = '';
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
             } catch (e) {
-                try {
-                    const res = await createUserWithEmailAndPassword(auth, email, pass);
-                    const defaultName = email.split('@')[0];
-                    await updateProfile(res.user, { displayName: defaultName, photoURL: DEFAULT_AVATAR });
-                    await ensureWalletExists(res.user.uid, defaultName);
-                    await update(ref(db, `users/${res.user.uid}`), { username: defaultName, photo: DEFAULT_AVATAR, uid: res.user.uid });
-                } catch (err) {
-                    errorP.innerText = err.message.replace('Firebase:', '');
+                // If account doesn't exist, create it with the synthetic email
+                if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
+                    try {
+                        const res = await createUserWithEmailAndPassword(auth, email, pass);
+                        const defaultName = phoneDigits;
+                        await updateProfile(res.user, { displayName: defaultName, photoURL: DEFAULT_AVATAR });
+                        await ensureWalletExists(res.user.uid, defaultName);
+                        await update(ref(db, `users/${res.user.uid}`), { username: defaultName, photo: DEFAULT_AVATAR, phone: phoneDigits, uid: res.user.uid });
+                    } catch (err) {
+                        errorP.innerText = err.message.replace('Firebase:', '');
+                        btnText.style.display = 'block';
+                        loader.style.display = 'none';
+                    }
+                } else {
+                    errorP.innerText = e.message.replace('Firebase:', '');
                     btnText.style.display = 'block';
                     loader.style.display = 'none';
                 }
@@ -641,7 +662,7 @@
             const inp = document.getElementById('chat-input');
             const text = inp.value.trim();
             if(!text || !activeChatId) return;
-            const senderName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+            const senderName = fallbackName(currentUser);
             const dbPath = activeChatId === 'global' ? 'chats' : `private_chats/${activeChatId}`;
             push(ref(db, dbPath), { uid: currentUser.uid, user: senderName, text: text, timestamp: Date.now() });
             inp.value = '';
@@ -747,7 +768,7 @@
                 showToast(`Batas komentar harian tercapai (${c.limit}x untuk ${tier.name}). Upgrade akun untuk lebih.`);
                 return;
             }
-            const name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+            const name = fallbackName(currentUser);
             push(ref(db, `posts/${pid}/comments`), { text: text, uid: currentUser.uid, username: name, timestamp: Date.now() });
             if(ownerUid !== currentUser.uid) sendNotif(ownerUid, `commented: ${text}`);
             inp.value = '';
@@ -815,7 +836,7 @@
         function loadProfile() {
             if(!currentUser) return;
             const dbUser = usersCache[currentUser.uid];
-            const finalName = (dbUser && dbUser.username) ? dbUser.username : (currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User'));
+            const finalName = (dbUser && dbUser.username) ? dbUser.username : (fallbackName(currentUser));
             const finalPhoto = (dbUser && dbUser.photo) ? dbUser.photo : DEFAULT_AVATAR;
             document.getElementById('profile-name').innerText = finalName;
             document.getElementById('profile-img').src = finalPhoto;
@@ -856,7 +877,7 @@
         };
 
         function sendNotif(targetId, text) {
-            const name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Someone');
+            const name = fallbackName(currentUser);
             push(ref(db, `notifications/${targetId}`), { text: `${name} ${text}`, timestamp: Date.now() });
         }
 
