@@ -134,9 +134,11 @@
         .rank-Gold { background: #fef3c7; color: #b45309; }
         .rank-Master { background: #ede9fe; color: #6d28d9; }
         .rank-badge-pill i { font-size: 13px; }
-        /* MASTER/ADMIN verified badge — distinct from regular users */
-        .admin-badge { color: #6d28d9; font-size: 0.85em; vertical-align: middle; margin-left: 3px; filter: drop-shadow(0 1px 2px rgba(109,40,157,0.4)); }
-        .admin-badge-lg { color: #6d28d9; font-size: 22px; vertical-align: middle; margin-left: 8px; filter: drop-shadow(0 1px 3px rgba(109,40,157,0.5)); }
+        /* MASTER/ADMIN verified checkmark badge — distinct from regular users */
+        .verified-admin { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(135deg,#7c3aed,#6d28d9); color: #fff; vertical-align: middle; margin-left: 4px; box-shadow: 0 1px 4px rgba(109,40,157,0.5); flex-shrink: 0; }
+        .verified-admin i { font-size: 9px; font-weight: 900; }
+        .verified-admin-lg { width: 26px; height: 26px; margin-left: 10px; box-shadow: 0 2px 8px rgba(109,40,157,0.55); }
+        .verified-admin-lg i { font-size: 14px; }
         .admin-tag { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#6d28d9,#7c3aed); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; }
         .admin-tag i { font-size: 11px; }
         .adm-act { display: flex; gap: 6px; margin-left: auto; }
@@ -268,7 +270,7 @@
                 <img id="profile-img" src="" class="p-big-img" onclick="document.getElementById('profile-file').click()">
                 <h2 id="profile-name" style="margin: 0; font-size: 22px; color: #1a1a1a;">Loading...</h2>
                 <div id="rank-pill" class="rank-badge-pill"></div>
-                <div id="admin-tag-profile" class="admin-tag" style="margin-top:8px; display:none;"><i class="fas fa-shield-halved"></i> Master / Admin</div>
+                <div id="admin-tag-profile" class="admin-tag" style="margin-top:8px; display:none;"><i class="fas fa-check"></i> Master / Admin</div>
                 <div style="display:flex; gap:8px; justify-content:center; margin-top: 12px;">
                     <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="toggleEditName()">Edit Name</button>
                     <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="openEditProfileModal()">Full Profile</button>
@@ -397,10 +399,10 @@
         };
         const normalizePhone = (p) => String(p || '').replace(/\D/g, '');
         const isAdmin = () => myRole === 'admin';
-        // Special verified badge for admin accounts (distinct from regular users)
+        // Special verified checkmark badge for admin accounts (distinct from regular users)
         const adminBadgeHtml = (uid) => {
             const role = (uid && usersCache[uid] && usersCache[uid].role) || (uid === currentUser.uid ? myRole : '');
-            if (role === 'admin') return ' <i class="fas fa-shield-halved admin-badge" title="MASTER / ADMIN"></i>';
+            if (role === 'admin') return ' <span class="verified-admin" title="MASTER / ADMIN"><i class="fas fa-check"></i></span>';
             return '';
         };
         // TIERS: purchased account tiers with upgrade price + daily activity limits
@@ -1001,7 +1003,7 @@
             const dbUser = usersCache[currentUser.uid];
             const finalName = (dbUser && dbUser.username) ? dbUser.username : (fallbackName(currentUser));
             const finalPhoto = (dbUser && dbUser.photo) ? dbUser.photo : DEFAULT_AVATAR;
-            document.getElementById('profile-name').innerHTML = finalName + (isAdmin() ? ' <i class="fas fa-shield-halved admin-badge-lg" title="MASTER / ADMIN"></i>' : '');
+            document.getElementById('profile-name').innerHTML = finalName + (isAdmin() ? ' <span class="verified-admin verified-admin-lg" title="MASTER / ADMIN"><i class="fas fa-check"></i></span>' : '');
             document.getElementById('profile-img').src = finalPhoto;
             const tagEl = document.getElementById('admin-tag-profile');
             if (tagEl) tagEl.style.display = isAdmin() ? 'inline-flex' : 'none';
