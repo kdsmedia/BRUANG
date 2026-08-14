@@ -523,8 +523,8 @@
             return 'User';
         }
 
-        // Referral bonus config (referrer / new user)
-        const REFERRAL_BONUS = { REFERRER: 1000, NEW_USER: 500 };
+        // Referral bonus config: both referrer and new user get 500 poin
+        const REFERRAL_BONUS = { REFERRER: 500, NEW_USER: 500 };
 
         // Look up a uid by 6-digit account id (referral code == account id)
         async function findUidByAcctId(acctId) {
