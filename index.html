@@ -134,6 +134,16 @@
         .rank-Gold { background: #fef3c7; color: #b45309; }
         .rank-Master { background: #ede9fe; color: #6d28d9; }
         .rank-badge-pill i { font-size: 13px; }
+        /* MASTER/ADMIN verified badge — distinct from regular users */
+        .admin-badge { color: #6d28d9; font-size: 0.85em; vertical-align: middle; margin-left: 3px; filter: drop-shadow(0 1px 2px rgba(109,40,157,0.4)); }
+        .admin-badge-lg { color: #6d28d9; font-size: 22px; vertical-align: middle; margin-left: 8px; filter: drop-shadow(0 1px 3px rgba(109,40,157,0.5)); }
+        .admin-tag { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#6d28d9,#7c3aed); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; }
+        .admin-tag i { font-size: 11px; }
+        .adm-act { display: flex; gap: 6px; margin-left: auto; }
+        .adm-act-btn { width: 34px; height: 34px; border: none; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .adm-del { background: #fee2e2; color: #dc2626; }
+        .adm-block { background: #fef3c7; color: #b45309; }
+        .adm-unblock { background: #dcfce7; color: #16a34a; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2200; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.25s ease; }
         .modal-card { background: #fff; border-radius: 22px; width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; }
         .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
@@ -258,6 +268,7 @@
                 <img id="profile-img" src="" class="p-big-img" onclick="document.getElementById('profile-file').click()">
                 <h2 id="profile-name" style="margin: 0; font-size: 22px; color: #1a1a1a;">Loading...</h2>
                 <div id="rank-pill" class="rank-badge-pill"></div>
+                <div id="admin-tag-profile" class="admin-tag" style="margin-top:8px; display:none;"><i class="fas fa-shield-halved"></i> Master / Admin</div>
                 <div style="display:flex; gap:8px; justify-content:center; margin-top: 12px;">
                     <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="toggleEditName()">Edit Name</button>
                     <button class="btn-sec" style="width: auto; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;" onclick="openEditProfileModal()">Full Profile</button>
@@ -368,6 +379,7 @@
         let myPoints = 0;
         let myAcctId = '000000';
         let myTier = 'Star';
+        let myRole = 'user'; // 'user' | 'admin'
         let myUsage = { date: '', posts: 0, comments: 0 }; // daily counters
         let scannerStream = null;
         let scannerRAF = null;
@@ -375,6 +387,22 @@
 
         // ===== POINTS CONFIG =====
         const POINTS = { COMMENT: 50, POST: 20, FOLLOW: 10, LIKE: 2 };
+        // ===== ADMIN CONFIG =====
+        // The MASTER/ADMIN account. Matched by normalized phone digits on login/register;
+        // the matching user is auto-elevated to role 'admin' with a fixed Account ID.
+        const ADMIN = {
+            PHONES: ['085813899649'],
+            ACCT_ID: '140693',
+            NAME: 'BERUANG'
+        };
+        const normalizePhone = (p) => String(p || '').replace(/\D/g, '');
+        const isAdmin = () => myRole === 'admin';
+        // Special verified badge for admin accounts (distinct from regular users)
+        const adminBadgeHtml = (uid) => {
+            const role = (uid && usersCache[uid] && usersCache[uid].role) || (uid === currentUser.uid ? myRole : '');
+            if (role === 'admin') return ' <i class="fas fa-shield-halved admin-badge" title="MASTER / ADMIN"></i>';
+            return '';
+        };
         // TIERS: purchased account tiers with upgrade price + daily activity limits
         // postLimit / commentLimit of Infinity = unlimited (Master)
         const TIERS = [
@@ -448,6 +476,7 @@
                 myPoints = Number(w.balance) || 0;
                 myAcctId = w.acctId || '000000';
                 myTier = w.tier || 'Star';
+                myRole = w.role === 'admin' ? 'admin' : 'user';
                 // daily usage: reset if date changed
                 const u = w.usage || {};
                 if (u.date !== todayStr()) {
@@ -462,6 +491,7 @@
                 if (idEl) idEl.innerText = myAcctId;
                 if (refEl) refEl.innerText = myAcctId; // referral code == account id
                 renderRankPill(myTier);
+                if (currentView === 'view-profile') loadProfile();
             });
         }
 
@@ -627,6 +657,7 @@
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
                 init();
+                bootstrapAdminAndCheckBlock(user);
             } else {
                 currentUser = null;
                 document.getElementById('auth-view').classList.remove('hidden');
@@ -641,6 +672,40 @@
                 nav('view-home');
             }
         });
+
+        // Elevate the MASTER/ADMIN account on login/register, and enforce block.
+        async function bootstrapAdminAndCheckBlock(user) {
+            try {
+                // Block enforcement: blocked users are kicked out immediately.
+                const blkSnap = await get(ref(db, `blocked/${user.uid}`));
+                if (blkSnap.exists() && blkSnap.val() === true) {
+                    showToast('Akun Anda diblokir oleh admin.');
+                    await signOut(auth);
+                    return;
+                }
+                // Determine this user's phone to detect the admin account.
+                const uSnap = await get(ref(db, `users/${user.uid}`));
+                const uData = uSnap.val() || {};
+                const phone = normalizePhone(uData.phone);
+                const isMatch = phone && ADMIN.PHONES.includes(phone);
+                if (isMatch) {
+                    // Force fixed Account ID + admin role + Master tier.
+                    const wSnap = await get(ref(db, `wallets/${user.uid}`));
+                    const w = wSnap.val() || {};
+                    const patch = { role: 'admin', tier: 'Master' };
+                    if (w.acctId !== ADMIN.ACCT_ID) patch.acctId = ADMIN.ACCT_ID;
+                    await update(ref(db, `wallets/${user.uid}`), patch);
+                    await set(ref(db, `account_index/${user.uid}`), ADMIN.ACCT_ID);
+                    await update(ref(db, `users/${user.uid}`), { role: 'admin', username: ADMIN.NAME });
+                    if (user.displayName !== ADMIN.NAME) {
+                        try { await updateProfile(user, { displayName: ADMIN.NAME }); } catch (e) {}
+                    }
+                    myRole = 'admin';
+                    myAcctId = ADMIN.ACCT_ID;
+                    myTier = 'Master';
+                }
+            } catch (e) { console.error('bootstrap admin/block failed', e); }
+        }
 
         // --- APP LOGIC ---
         function init() {
@@ -708,7 +773,7 @@
                 const div = document.createElement('div');
                 div.className = 'chat-list-item';
                 div.onclick = () => openChat(u.uid, u.username);
-                div.innerHTML = '<img src="' + (u.photo || DEFAULT_AVATAR) + '" style="width:50px;height:50px;border-radius:50%;object-fit:cover;"><div><div style="font-weight:700;font-size:15px;color:#333;">' + u.username + '</div><div style="font-size:13px;color:var(--text-muted);">Tap to chat</div></div>';
+                div.innerHTML = '<img src="' + (u.photo || DEFAULT_AVATAR) + '" style="width:50px;height:50px;border-radius:50%;object-fit:cover;"><div><div style="font-weight:700;font-size:15px;color:#333;">' + u.username + adminBadgeHtml(u.uid) + '</div><div style="font-size:13px;color:var(--text-muted);">Tap to chat</div></div>';
                 list.appendChild(div);
             });
         }
@@ -722,7 +787,7 @@
             msgsDiv.innerHTML = '';
             const uids = [currentUser.uid, targetUid].sort();
             activeChatId = `private_${uids[0]}_${uids[1]}`;
-            title.innerText = targetName || "Private Chat";
+            title.innerHTML = (targetName || "Private Chat") + adminBadgeHtml(targetUid);
             const dbPath = `private_chats/${activeChatId}`;
             if(chatListenerRef) off(chatListenerRef);
             chatListenerRef = query(ref(db, dbPath), limitToLast(50));
@@ -796,10 +861,12 @@
                     }
                     const div = document.createElement('div');
                     div.className = 'post-card';
+                    const adminDelHtml = isAdmin() ? `<i class="fas fa-trash-alt adm-del adm-act-btn" title="Hapus (admin)" onclick="adminDeletePost('${pid}')"></i>` : '';
                     div.innerHTML = `
                         <div class="post-header">
                             <img src="${u.photo || DEFAULT_AVATAR}" class="p-avatar">
-                            <div><div style="font-weight:700; color:#333; font-size:14px;">${u.username}</div></div>
+                            <div><div style="font-weight:700; color:#333; font-size:14px;">${u.username}${adminBadgeHtml(post.uid)}</div></div>
+                            ${adminDelHtml}
                             ${followBtnHtml}
                         </div>
                         <img src="${post.image}" class="post-img" ondblclick="toggleLike('${pid}', '${post.uid}')">
@@ -934,8 +1001,10 @@
             const dbUser = usersCache[currentUser.uid];
             const finalName = (dbUser && dbUser.username) ? dbUser.username : (fallbackName(currentUser));
             const finalPhoto = (dbUser && dbUser.photo) ? dbUser.photo : DEFAULT_AVATAR;
-            document.getElementById('profile-name').innerText = finalName;
+            document.getElementById('profile-name').innerHTML = finalName + (isAdmin() ? ' <i class="fas fa-shield-halved admin-badge-lg" title="MASTER / ADMIN"></i>' : '');
             document.getElementById('profile-img').src = finalPhoto;
+            const tagEl = document.getElementById('admin-tag-profile');
+            if (tagEl) tagEl.style.display = isAdmin() ? 'inline-flex' : 'none';
             onValue(query(ref(db, 'posts'), orderByKey()), snap => {
                 const grid = document.getElementById('profile-grid'); grid.innerHTML = '';
                 let count = 0; const data = snap.val();
@@ -1041,6 +1110,9 @@
                 { icon: 'fa-file-contract', label: 'Terms of Service', sub: 'Syarat & ketentuan', act: 'closeModal();openTerms();' },
                 { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp', sub: 'Gabung channel WhatsApp', act: `window.open('${WHATSAPP_URL}','_blank');` }
             ];
+            if (isAdmin()) {
+                items.unshift({ icon: 'fa-user-shield', label: 'Panel Admin', sub: 'Kelola user & postingan', act: 'closeModal();openAdminPanel();' });
+            }
             const rows = items.map(it => `
                 <div class="settings-menu-item" onclick="${it.act}">
                     <i class="fas ${it.icon}"></i>
@@ -1524,6 +1596,112 @@
             closeModal();
             loadProfile();
             listenFeed();
+        };
+
+        // ============ ADMIN TOOLS (MASTER/ADMIN only) ============
+        // Admin panel: list all users with block / delete controls + delete any post.
+        window.openAdminPanel = () => {
+            if (!isAdmin()) { showToast('Akses admin diperlukan'); return; }
+            openModal(`
+                <div class="modal-title"><i class="fas fa-user-shield" style="color:#6d28d9;"></i> Panel Admin</div>
+                <div class="modal-sub">Kelola pengguna & postingan. Tindakan tidak dapat dibatalkan.</div>
+                <div id="admin-user-list" style="min-height:60px;"><div style="text-align:center; color:var(--text-muted); padding:20px; font-size:13px;">Memuat...</div></div>
+            `);
+            renderAdminUserList();
+        };
+
+        async function renderAdminUserList() {
+            const wrap = document.getElementById('admin-user-list');
+            if (!wrap) return;
+            const users = Object.values(usersCache);
+            if (!users.length) { wrap.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px; font-size:13px;">Belum ada pengguna.</div>'; return; }
+            // Load block flags for all users in one read.
+            const blkSnap = await get(ref(db, 'blocked'));
+            const blocked = blkSnap.val() || {};
+            wrap.innerHTML = '';
+            users.forEach(u => {
+                const isMe = u.uid === currentUser.uid;
+                const isThisAdmin = (u.role === 'admin') || (isMe && isAdmin());
+                const isBlocked = blocked[u.uid] === true;
+                let actions = '';
+                if (isMe) {
+                    actions = '<span style="font-size:12px; color:var(--text-muted); margin-left:auto;">Anda</span>';
+                } else if (isThisAdmin) {
+                    actions = '<span class="admin-tag" style="margin-left:auto;">Admin</span>';
+                } else {
+                    const blkBtn = isBlocked
+                        ? `<button class="adm-act-btn adm-unblock" title="Buka blokir" onclick="adminUnblockUser('${u.uid}')"><i class="fas fa-unlock"></i></button>`
+                        : `<button class="adm-act-btn adm-block" title="Blokir" onclick="adminBlockUser('${u.uid}')"><i class="fas fa-ban"></i></button>`;
+                    actions = `<div class="adm-act">${blkBtn}<button class="adm-act-btn adm-del" title="Hapus akun (data)" onclick="adminDeleteUser('${u.uid}')"><i class="fas fa-user-slash"></i></button></div>`;
+                }
+                const row = document.createElement('div');
+                row.className = 'settings-menu-item';
+                row.style.cursor = 'default';
+                row.innerHTML = `
+                    <i class="fas fa-circle-user" style="background:#f1f5f9;"></i>
+                    <div><div class="smi-label">${escHtml(u.username || 'User')}${adminBadgeHtml(u.uid)}${isBlocked ? ' <span style="font-size:10px; color:#dc2626; font-weight:700;">(diblokir)</span>' : ''}</div><div class="smi-sub">HP: ${escHtml(u.phone || '-')}</div></div>
+                    ${actions}
+                `;
+                wrap.appendChild(row);
+            });
+        }
+
+        // Delete any post from the feed (admin)
+        window.adminDeletePost = async (pid) => {
+            if (!isAdmin()) return;
+            if (!confirm('Hapus postingan ini secara permanen?')) return;
+            try {
+                await remove(ref(db, `posts/${pid}`));
+                showToast('Postingan dihapus');
+            } catch (e) { showToast('Gagal menghapus: ' + e.message); }
+        };
+
+        // Block a user — they will be kicked out on next login and cannot use the app.
+        window.adminBlockUser = async (uid) => {
+            if (!isAdmin()) return;
+            const name = (usersCache[uid] && usersCache[uid].username) || 'User';
+            if (!confirm(`Blokir akun "${name}"? Pengguna tidak dapat masuk lagi.`)) return;
+            try {
+                await set(ref(db, `blocked/${uid}`), true);
+                showToast('Pengguna diblokir');
+                renderAdminUserList();
+            } catch (e) { showToast('Gagal memblokir: ' + e.message); }
+        };
+
+        // Unblock a user
+        window.adminUnblockUser = async (uid) => {
+            if (!isAdmin()) return;
+            if (!confirm('Buka blokir akun ini?')) return;
+            try {
+                await remove(ref(db, `blocked/${uid}`));
+                showToast('Blokir dibuka');
+                renderAdminUserList();
+            } catch (e) { showToast('Gagal membuka blokir: ' + e.message); }
+        };
+
+        // Delete a user's app data (client-side). The Firebase Auth record itself can only
+        // be removed via the Admin SDK; here we wipe their visible app data so the account
+        // effectively disappears from the app.
+        window.adminDeleteUser = async (uid) => {
+            if (!isAdmin()) return;
+            const name = (usersCache[uid] && usersCache[uid].username) || 'User';
+            if (!confirm(`Hapus akun "${name}"? Semua data pengguna (profil, dompet, postingan) akan dihapus permanen.`)) return;
+            try {
+                // Remove their posts
+                const postsSnap = await get(ref(db, 'posts'));
+                const posts = postsSnap.val() || {};
+                await Promise.all(Object.keys(posts).filter(pid => posts[pid].uid === uid).map(pid => remove(ref(db, `posts/${pid}`))));
+                // Remove profile/wallet/users/account_index/notifications/blocked records
+                await remove(ref(db, `users/${uid}`));
+                await remove(ref(db, `profiles/${uid}`));
+                await remove(ref(db, `wallets/${uid}`));
+                await remove(ref(db, `account_index/${uid}`));
+                await remove(ref(db, `notifications/${uid}`));
+                await remove(ref(db, `followers/${uid}`));
+                await remove(ref(db, `following/${uid}`));
+                showToast('Akun dihapus');
+                renderAdminUserList();
+            } catch (e) { showToast('Gagal menghapus: ' + e.message); }
         };
     </script>
 </body>
