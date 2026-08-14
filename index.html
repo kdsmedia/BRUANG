@@ -98,6 +98,16 @@
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-top: 2px; }
         .grid-item { aspect-ratio: 1; width: 100%; object-fit: cover; cursor: pointer; }
         .logout-btn { position: absolute; top: 20px; right: 20px; color: var(--accent-red); cursor: pointer; font-size: 22px; }
+        .settings-btn { position: absolute; top: 20px; left: 20px; color: var(--text-muted); cursor: pointer; font-size: 22px; transition: transform 0.3s; }
+        .settings-btn:active { transform: rotate(90deg); }
+        .settings-menu-item { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; cursor: pointer; transition: background 0.2s; }
+        .settings-menu-item:active { background: #f1f5f9; }
+        .settings-menu-item i { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: #f1f5f9; color: var(--text-main); }
+        .settings-menu-item .smi-label { font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .settings-menu-item .smi-sub { font-size: 12px; color: var(--text-muted); }
+        .info-body { font-size: 13.5px; line-height: 1.7; color: var(--text-main); }
+        .info-body h4 { margin: 16px 0 6px; font-size: 14px; color: var(--text-main); }
+        .info-body p { margin: 0 0 10px; color: var(--text-muted); }
         .btn-sec { background: transparent; border: 2px solid var(--bg-nav); color: var(--bg-nav); box-shadow: none; }
         .notif-row { padding: 15px 20px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #f1f5f9; background: #fff; }
         .notif-icon { width: 40px; height: 40px; border-radius: 50%; background: #fffbeb; color: #ca8a04; display: flex; align-items: center; justify-content: center; font-size: 16px; }
@@ -242,6 +252,7 @@
 
         <!-- PROFILE -->
         <div id="view-profile" class="view">
+            <i class="fas fa-cog settings-btn" onclick="openSettingsModal()" title="Pengaturan Akun"></i>
             <i class="fas fa-sign-out-alt logout-btn" onclick="handleLogout()" title="Logout"></i>
             <div class="profile-head">
                 <img id="profile-img" src="" class="p-big-img" onclick="document.getElementById('profile-file').click()">
@@ -1012,6 +1023,80 @@
             const root = document.getElementById('modal-root');
             root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal-card"><button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>${innerHtml}</div></div>`;
         }
+
+        const WHATSAPP_URL = 'https://whatsapp.com/channel/0029Vb8X1feA89MnppCqMy40';
+
+        // Generic info modal (about / privacy / disclaimer / terms)
+        function openInfoModal(title, bodyHtml) {
+            openModal(`<div class="modal-title">${title}</div><div class="info-body" style="margin-top:14px;">${bodyHtml}</div>`);
+        }
+
+        // Account settings menu
+        window.openSettingsModal = () => {
+            const items = [
+                { icon: 'fa-user-gear', label: 'Pengaturan Akun', sub: 'Ubah nama, foto, dan profil', act: 'closeModal();openEditProfileModal();' },
+                { icon: 'fa-info-circle', label: 'About', sub: 'Tentang BERUANG', act: 'closeModal();openAbout();' },
+                { icon: 'fa-shield-halved', label: 'Privacy Policy', sub: 'Kebijakan privasi', act: 'closeModal();openPrivacy();' },
+                { icon: 'fa-circle-exclamation', label: 'Disclaimer', sub: 'Sangkalan', act: 'closeModal();openDisclaimer();' },
+                { icon: 'fa-file-contract', label: 'Terms of Service', sub: 'Syarat & ketentuan', act: 'closeModal();openTerms();' },
+                { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp', sub: 'Gabung channel WhatsApp', act: `window.open('${WHATSAPP_URL}','_blank');` }
+            ];
+            const rows = items.map(it => `
+                <div class="settings-menu-item" onclick="${it.act}">
+                    <i class="fas ${it.icon}"></i>
+                    <div><div class="smi-label">${it.label}</div><div class="smi-sub">${it.sub}</div></div>
+                </div>
+            `).join('');
+            openModal(`<div class="modal-title">Pengaturan</div><div class="modal-sub">Kelola akun & informasi aplikasi</div><div style="margin-top:6px;">${rows}</div>`);
+        };
+
+        window.openAbout = () => openInfoModal('Tentang BERUANG', `
+            <p><b>BERUANG</b> — Connect &amp; Share.</p>
+            <p>BERUANG adalah aplikasi sosial media berbasis poin yang menggabungkan berbagi momen, interaksi sosial, dan sistem dompet poin virtual.</p>
+            <h4>Fitur Utama</h4>
+            <p>• Posting foto &amp; caption<br>• Suka &amp; berkomentar<br>• Tambah teman &amp; chat pribadi<br>• Dompet poin &amp; transfer via QR<br>• Sistem tier akun<br>• Program referral</p>
+            <h4>Sistem Poin</h4>
+            <p>Komentar +50, Posting +20, Tambah teman +10, Suka +2, Referral +500 (atasan &amp; bawahan).</p>
+            <p style="margin-top:14px; font-size:12px;">Versi aplikasi: 1.0.0</p>
+        `);
+
+        window.openPrivacy = () => openInfoModal('Kebijakan Privasi', `
+            <p>Privasi Anda penting bagi kami. Kebijakan ini menjelaskan bagaimana BERUANG mengumpulkan, menggunakan, dan melindungi data Anda.</p>
+            <h4>Data yang Dikumpulkan</h4>
+            <p>Nama, nomor HP, foto profil, dan aktivitas dalam aplikasi (posting, komentar, poin, transaksi).</p>
+            <h4>Penggunaan Data</h4>
+            <p>Data digunakan untuk menjalankan layanan sosial, sistem poin, dan transaksi antar pengguna. Data tidak dijual ke pihak ketiga.</p>
+            <h4>Keamanan</h4>
+            <p>Data disimpan pada infrastruktur Firebase dengan aturan keamanan. PIN transaksi di-hash dan tidak ditampilkan kepada siapapun.</p>
+            <h4>Hak Pengguna</h4>
+            <p>Anda dapat mengubah profil kapan saja. Penghapusan akun dapat dilakukan melalui kontak dukungan.</p>
+        `);
+
+        window.openDisclaimer = () => openInfoModal('Disclaimer', `
+            <p>Dengan menggunakan BERUANG, Anda menyetujui sangkalan berikut:</p>
+            <h4>Poin Virtual</h4>
+            <p>Poin dalam BERUANG adalah mata uang virtual yang <b>tidak memiliki nilai riil</b> dan tidak dapat ditukar dengan uang fisik atau aset nyata.</p>
+            <h4>Tanggung Jawab Pengguna</h4>
+            <p>Pengguna bertanggung jawab penuh atas konten yang diunggah dan transaksi yang dilakukan. BERUANG tidak bertanggung jawab atas kehilangan poin akibat kelalaian pengguna (mis. membagikan PIN).</p>
+            <h4>Konten Pengguna</h4>
+            <p>BERUANG tidak menyensor konten secara aktif. Dilarang mengunggah konten melanggar hukum, SARA, atau pornografi.</p>
+            <h4>Layanan "Sebagaimana Adanya"</h4>
+            <p>Layanan disediakan tanpa jaminan. Kami berhak mengubah atau menghentikan layanan sewaktu-waktu.</p>
+        `);
+
+        window.openTerms = () => openInfoModal('Syarat &amp; Ketentuan', `
+            <p>Dengan mendaftar dan menggunakan BERUANG, Anda menyetujui syarat berikut:</p>
+            <h4>1. Akun</h4>
+            <p>Anda wajib menggunakan nomor HP yang valid dan menjaga kerahasiaan sandi serta PIN transaksi.</p>
+            <h4>2. Penggunaan</h4>
+            <p>Dilarang melakukan tindakan penyalahgunaan, termasuk farming poin otomatis, akun ganda untuk manipulasi referral, atau spam.</p>
+            <h4>3. Transaksi</h4>
+            <p>Transfer poin bersifat final. Konfirmasi penerima sebelum mengirim. Pembukaan PIN adalah tanggung jawab pengguna.</p>
+            <h4>4. Tier &amp; Upgrade</h4>
+            <p>Pembelian upgrade tier tidak dapat dikembalikan (non-refundable).</p>
+            <h4>5. Larangan</h4>
+            <p>Kami berhak menonaktifkan akun yang melanggar syarat ini tanpa pemberitahuan terlebih dahulu.</p>
+        `);
 
         async function findUserByAcctId(acctId) {
             const idxSnap = await get(ref(db, 'account_index'));
