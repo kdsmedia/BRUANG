@@ -31,7 +31,6 @@
         .auth-input:focus { border-color: var(--bg-nav); }
         .btn-primary { background: var(--bg-nav); color: #000; font-weight: 600; padding: 12px; border-radius: 12px; width: 100%; font-size: 1rem; margin-bottom: 10px; border: none; cursor: pointer; transition: transform 0.1s; }
         .btn-primary:active { transform: scale(0.95); }
-        .btn-google { background: #db4437; border: none; color: white; margin-top: 10px; width: 100%; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(219,68,55,0.3); }
         .auth-note { font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; }
 
         /* Auth tabs (Login / Daftar) */
@@ -190,12 +189,6 @@
             </div>
 
             <p id="error-msg" style="color: #ef4444; font-size: 13px; margin: 10px 0; min-height:18px;"></p>
-            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:15px 0;">
-                <hr style="flex:1; border:0; border-top:1px solid #ddd;">
-                <span style="color:#aaa; font-size:0.8rem;">OR</span>
-                <hr style="flex:1; border:0; border-top:1px solid #ddd;">
-            </div>
-            <button class="btn-google" onclick="handleGoogle()"><i class="fab fa-google"></i> Continue with Google</button>
             <p class="auth-note">Masuk dengan nomor HP & sandi. Belum punya akun? Pilih Daftar.</p>
         </div>
     </div>
@@ -332,7 +325,7 @@
     <!-- FIREBASE & LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getDatabase, ref, push, set, onValue, update, remove, query, limitToLast, orderByKey, off, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -347,7 +340,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
-        const provider = new GoogleAuthProvider();
 
         const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
         let currentUser = null;
@@ -616,15 +608,6 @@
             }
         };
 
-        window.handleGoogle = async () => {
-            try {
-                const res = await signInWithPopup(auth, provider);
-                const photo = res.user.photoURL || DEFAULT_AVATAR;
-                await ensureWalletExists(res.user.uid, res.user.displayName);
-                await update(ref(db, `users/${res.user.uid}`), { username: res.user.displayName, photo: photo, uid: res.user.uid });
-            } catch (e) { console.error(e); }
-        };
-
         window.handleLogout = async () => { await signOut(auth); };
 
         onAuthStateChanged(auth, (user) => {
@@ -655,7 +638,6 @@
             listenFeed();
             listenStories();
             listenNotifications();
-            listenGlobalChatBadge();
             listenMyWallet();
             loadProfile();
         }
@@ -710,11 +692,6 @@
         function renderChatList() {
             const list = document.getElementById('chat-list');
             list.innerHTML = '';
-            const globalDiv = document.createElement('div');
-            globalDiv.className = 'chat-list-item';
-            globalDiv.onclick = () => openChat('global');
-            globalDiv.innerHTML = '<div style="width:50px;height:50px;border-radius:50%;background:var(--bg-nav);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;"><i class="fas fa-globe"></i></div><div><div style="font-weight:700;font-size:15px;color:#333;">Global Channel</div><div style="font-size:13px;color:var(--text-muted);">Join the public conversation</div></div>';
-            list.appendChild(globalDiv);
             Object.values(usersCache).forEach(u => {
                 if(u.uid === currentUser.uid) return;
                 const div = document.createElement('div');
@@ -732,17 +709,10 @@
             const msgsDiv = document.getElementById('chat-msgs');
             overlay.classList.remove('hidden');
             msgsDiv.innerHTML = '';
-            let dbPath = '';
-            if(targetUid === 'global') {
-                activeChatId = 'global';
-                title.innerText = "Global Channel";
-                dbPath = 'chats';
-            } else {
-                const uids = [currentUser.uid, targetUid].sort();
-                activeChatId = `private_${uids[0]}_${uids[1]}`;
-                title.innerText = targetName || "Private Chat";
-                dbPath = `private_chats/${activeChatId}`;
-            }
+            const uids = [currentUser.uid, targetUid].sort();
+            activeChatId = `private_${uids[0]}_${uids[1]}`;
+            title.innerText = targetName || "Private Chat";
+            const dbPath = `private_chats/${activeChatId}`;
             if(chatListenerRef) off(chatListenerRef);
             chatListenerRef = query(ref(db, dbPath), limitToLast(50));
             onValue(chatListenerRef, snap => {
@@ -751,8 +721,7 @@
                 if(data) {
                     Object.values(data).forEach(msg => {
                         const isMine = msg.uid === currentUser.uid;
-                        const prefix = (!isMine && activeChatId === 'global') ? `<small style="color:#64748b;font-size:11px;font-weight:600">${msg.user}</small><br>` : '';
-                        msgsDiv.innerHTML += `<div class="bubble ${isMine ? 'mine' : 'theirs'}">${prefix}${msg.text}</div>`;
+                        msgsDiv.innerHTML += `<div class="bubble ${isMine ? 'mine' : 'theirs'}">${msg.text}</div>`;
                     });
                     msgsDiv.scrollTop = msgsDiv.scrollHeight;
                 }
@@ -770,7 +739,7 @@
             const text = inp.value.trim();
             if(!text || !activeChatId) return;
             const senderName = fallbackName(currentUser);
-            const dbPath = activeChatId === 'global' ? 'chats' : `private_chats/${activeChatId}`;
+            const dbPath = `private_chats/${activeChatId}`;
             push(ref(db, dbPath), { uid: currentUser.uid, user: senderName, text: text, timestamp: Date.now() });
             inp.value = '';
         };
@@ -1015,19 +984,6 @@
                 } else {
                     div.innerHTML = '<div style="padding:20px; text-align:center; color:gray; font-size:14px;">No recent activity.</div>';
                     badge.classList.add('hidden');
-                }
-            });
-        }
-
-        function listenGlobalChatBadge() {
-            let firstLoad = true;
-            onValue(query(ref(db, 'chats'), limitToLast(1)), snap => {
-                if(firstLoad) { firstLoad = false; return; }
-                if(currentView !== 'view-chat' && activeChatId !== 'global') {
-                    chatCount++;
-                    const badge = document.getElementById('badge-chat');
-                    badge.innerText = chatCount;
-                    badge.classList.remove('hidden');
                 }
             });
         }
