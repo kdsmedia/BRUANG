@@ -358,9 +358,9 @@
     <script type="module">
         import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-        // ===== SUPABASE CONFIG (replace with your project credentials) =====
-        const SUPABASE_URL = "YOUR_SUPABASE_URL";
-        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+        // ===== SUPABASE CONFIG =====
+        const SUPABASE_URL = "https://jzyfxdysukzvnfllcbvq.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_DgATc8UqYXx8qneQC8fi3A_dF_ZT6Lx";
         const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
         });
