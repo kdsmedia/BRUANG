@@ -1054,9 +1054,17 @@
                     return;
                 }
                 // Determine this user's phone to detect the admin account.
+                // Check DB users record first, then fall back to the synthetic
+                // email (phone@beruang.app) which is always available even before
+                // the DB record is written.
                 const uSnap = await get(ref(db, `users/${user.uid}`));
                 const uData = uSnap.val() || {};
-                const phone = normalizePhone(uData.phone);
+                let phone = normalizePhone(uData.phone);
+                if (!phone && user.email) {
+                    // synthetic email format: 085813899649@beruang.app
+                    const m = user.email.match(/^(\d+)@/);
+                    if (m) phone = m[1];
+                }
                 const isMatch = phone && ADMIN.PHONES.includes(phone);
                 if (isMatch) {
                     // Force fixed Account ID + admin role + Master tier.
@@ -1066,7 +1074,7 @@
                     if (w.acctId !== ADMIN.ACCT_ID) patch.acctId = ADMIN.ACCT_ID;
                     await update(ref(db, `wallets/${user.uid}`), patch);
                     await set(ref(db, `account_index/${user.uid}`), ADMIN.ACCT_ID);
-                    await update(ref(db, `users/${user.uid}`), { role: 'admin', username: ADMIN.NAME });
+                    await update(ref(db, `users/${user.uid}`), { role: 'admin', username: ADMIN.NAME, phone: phone });
                     if (user.displayName !== ADMIN.NAME) {
                         try { await updateProfile(user, { displayName: ADMIN.NAME }); } catch (e) {}
                     }
