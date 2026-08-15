@@ -58,14 +58,17 @@
         .story-card { width: 65px; height: 65px; border-radius: 50%; position: relative; overflow: hidden; border: 2px solid var(--bg-nav); padding: 2px; flex-shrink: 0; }
         .story-card img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
         .story-card.add { background: #fff; border: 2px dashed var(--bg-nav); display: flex; align-items: center; justify-content: center; color: var(--bg-nav); }
-        .post-card { margin: 10px 10px 25px 10px; padding: 0; border-radius: var(--radius-card); box-shadow: var(--shadow-soft); background: white; overflow: hidden; border: 1px solid rgba(0,0,0,0.03); }
-        .post-header { display: flex; align-items: center; gap: 12px; padding: 12px; }
-        .p-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; }
-        .post-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
-        .post-actions { display: flex; gap: 18px; padding: 12px 15px 5px 15px; }
-        .action-btn { font-size: 24px; color: var(--text-main); cursor: pointer; transition: transform 0.2s; }
+        .post-card { margin: 12px 12px 22px 12px; padding: 0; border-radius: 18px; box-shadow: 0 4px 18px rgba(15,23,42,0.07); background: white; overflow: hidden; border: 1px solid #e9eef5; }
+        .post-header { display: flex; align-items: center; gap: 12px; padding: 13px 15px; }
+        .p-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #eaeef3; flex-shrink: 0; }
+        .post-img { width: 100%; max-height: 560px; object-fit: cover; display: block; background: #f1f5f9; }
+        .post-text-only { padding: 0 15px 14px 15px; font-size: 15px; line-height: 1.5; color: var(--text-main); white-space: pre-wrap; word-break: break-word; }
+        .post-actions { display: flex; gap: 20px; padding: 10px 15px 4px 15px; border-top: 1px solid #f3f5f8; margin-top: 0; }
+        .action-btn { font-size: 23px; color: var(--text-main); cursor: pointer; transition: transform 0.2s; }
+        .action-btn:active { transform: scale(0.88); }
         .action-btn.liked { color: var(--accent-red); }
-        .caption-area { padding: 5px 15px 12px 15px; color: var(--text-muted); font-size: 13.5px; line-height: 1.4; }
+        .post-likes-count { font-size: 12.5px; color: var(--text-muted); padding: 0 15px; font-weight: 600; }
+        .caption-area { padding: 6px 15px 12px 15px; color: var(--text-muted); font-size: 13.5px; line-height: 1.45; word-break: break-word; }
         .caption-area b { color: var(--text-main); margin-right: 6px; font-weight: 600; }
         .btn-follow { padding: 6px 16px; font-size: 12px; font-weight: 700; border-radius: 15px; border: none; cursor: pointer; margin-left: auto; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
         .btn-follow.not-following { background: var(--accent-red); color: white; box-shadow: 0 4px 10px rgba(255,0,0,0.3); }
@@ -98,10 +101,17 @@
         .stat-label { font-size: 12px; color: var(--text-muted); }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-top: 2px; }
         .grid-item { aspect-ratio: 1; width: 100%; object-fit: cover; cursor: pointer; }
+        .grid-item-text { display: flex; align-items: center; justify-content: center; background: #f1f5f9; color: #94a3b8; font-size: 22px; }
         .settings-btn { position: absolute; top: 20px; left: 20px; color: var(--text-muted); cursor: pointer; font-size: 22px; transition: transform 0.3s; }
         .settings-btn:active { transform: rotate(90deg); }
         .btn-logout { width: 100%; padding: 13px; border: none; border-radius: 14px; background: #fee2e2; color: var(--accent-red); font-weight: 700; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.1s; }
         .btn-logout:active { transform: scale(0.96); }
+
+        /* Pull-to-refresh */
+        #ptr-indicator { position: fixed; top: calc(env(safe-area-inset-top) + 8px); left: 50%; transform: translateX(-50%) translateY(-60px); width: 40px; height: 40px; border-radius: 50%; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; z-index: 1500; transition: transform 0.2s ease, opacity 0.2s ease; opacity: 0; pointer-events: none; }
+        #ptr-indicator i { font-size: 18px; color: var(--bg-nav); }
+        #ptr-indicator.ptr-active { opacity: 1; }
+        #ptr-indicator.ptr-rotate i { animation: spin 0.8s linear infinite; }
         .settings-menu-item { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; cursor: pointer; transition: background 0.2s; }
         .settings-menu-item:active { background: #f1f5f9; }
         .settings-menu-item i { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: #f1f5f9; color: var(--text-main); }
@@ -249,8 +259,9 @@
                 <div class="upload-area" onclick="document.getElementById('post-file').click()">
                     <img id="upload-preview-img" class="upload-preview">
                     <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: #cbd5e1; margin-bottom: 10px;"></i>
-                    <span style="color: #94a3b8; font-size: 14px;">Tap to upload image</span>
+                    <span style="color: #94a3b8; font-size: 14px;">Tap to upload image (optional)</span>
                 </div>
+                <i id="remove-img-btn" class="fas fa-times-circle" title="Hapus gambar" onclick="event.stopPropagation(); clearUploadImage()" style="display:none; position:fixed; right:34px; bottom:230px; font-size:28px; color:#ef4444; background:#fff; border-radius:50%; z-index:1200; box-shadow:0 2px 8px rgba(0,0,0,0.2);"></i>
                 <textarea id="post-caption" rows="3" placeholder="Write a caption..."></textarea>
                 <button class="btn-main" onclick="uploadPost()">
                     <span id="post-btn-text">Publish Post</span>
@@ -343,6 +354,9 @@
 
     <!-- MODALS CONTAINER -->
     <div id="modal-root"></div>
+
+    <!-- Pull-to-refresh indicator -->
+    <div id="ptr-indicator"><i class="fas fa-arrow-down"></i></div>
 
     <!-- QR generation + scanning libraries -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -924,7 +938,30 @@
             }
         };
 
-        window.handleLogout = async () => { await signOut(auth); };
+        window.handleLogout = async () => {
+            try {
+                closeModal();
+            } catch (_) {}
+            try {
+                await signOut(auth);
+            } catch (e) {
+                window.__dbg('Logout error: ' + (e && e.message ? e.message : e));
+                showToast('Gagal logout: ' + (e && e.message ? e.message : 'kesalahan tidak diketahui'));
+                return;
+            }
+            // Reset local caches so a fresh login starts clean (onAuthStateChanged also clears _subs).
+            usersCache = {};
+            followingCache = {};
+            myTier = 'Star';
+            myRole = 'user';
+            myAcctId = '000000';
+            notifCount = 0;
+            chatCount = 0;
+            // Hide any open chat window.
+            const cw = document.getElementById('chat-window');
+            if (cw) cw.classList.add('hidden');
+            showToast('Anda telah keluar.');
+        };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -1001,6 +1038,81 @@
             listenNotifications();
             listenMyWallet();
             loadProfile();
+            initPullToRefresh();
+        }
+
+        // ===== PULL-TO-REFRESH =====
+        // Works on every scrollable .view: when the user pulls down at the top
+        // of the page, the current view is reloaded (re-fetching feed/stories/
+        // notif/profile data) without a full page reload.
+        function initPullToRefresh() {
+            const indicator = document.getElementById('ptr-indicator');
+            if (!indicator) return;
+            const THRESHOLD = 70;
+            let startY = 0, pulling = false, currentTarget = null;
+
+            const getView = () => document.querySelector('.view.active');
+
+            document.addEventListener('touchstart', (e) => {
+                const view = getView();
+                if (!view || !currentUser) return;
+                // Only start a pull when the view is scrolled to the very top.
+                if (view.scrollTop <= 0) {
+                    startY = e.touches[0].clientY;
+                    pulling = true;
+                    currentTarget = view;
+                } else {
+                    pulling = false;
+                    currentTarget = null;
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!pulling || !currentTarget) return;
+                const dy = e.touches[0].clientY - startY;
+                if (dy <= 0) {
+                    indicator.classList.remove('ptr-active', 'ptr-rotate');
+                    indicator.style.transform = 'translateX(-50%) translateY(-60px)';
+                    return;
+                }
+                // Apply a resistance curve so the pull feels natural.
+                const dist = Math.min(dy * 0.5, THRESHOLD + 20);
+                indicator.classList.add('ptr-active');
+                indicator.classList.remove('ptr-rotate');
+                indicator.style.transform = `translateX(-50%) translateY(${dist - 30}px)`;
+            }, { passive: true });
+
+            const doRefresh = async () => {
+                indicator.classList.add('ptr-rotate');
+                try {
+                    // Re-run the live listeners so data is re-fetched from Supabase.
+                    listenFeed();
+                    listenStories();
+                    if (currentView === 'view-notif') listenNotifications();
+                    if (currentView === 'view-profile') loadProfile();
+                } catch (e) {
+                    window.__dbg('PTR refresh error: ' + (e && e.message ? e.message : e));
+                }
+                // Brief spin so the user sees feedback even on fast networks.
+                setTimeout(() => {
+                    indicator.classList.remove('ptr-active', 'ptr-rotate');
+                    indicator.style.transform = 'translateX(-50%) translateY(-60px)';
+                    showToast('Diperbarui');
+                }, 600);
+            };
+
+            document.addEventListener('touchend', () => {
+                if (!pulling) return;
+                pulling = false;
+                const ty = parseInt((indicator.style.transform.match(/translateY\((-?\d+)px\)/) || [])[1] || '-60', 10);
+                if (ty >= THRESHOLD - 35) {
+                    doRefresh();
+                } else {
+                    indicator.classList.remove('ptr-active', 'ptr-rotate');
+                    indicator.style.transform = 'translateX(-50%) translateY(-60px)';
+                }
+                currentTarget = null;
+            }, { passive: true });
         }
 
         window.nav = (viewId) => {
@@ -1038,9 +1150,50 @@
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         resolve(canvas.toDataURL('image/jpeg', quality));
                     };
+                    img.onerror = () => resolve(e.target.result);
                 };
+                reader.onerror = () => resolve('');
             });
         };
+
+        // ===== SUPABASE STORAGE =====
+        // Bucket name used for all media uploads. Create this bucket in the
+        // Supabase dashboard (see STORAGE SETUP note). If the bucket/policies
+        // are not yet configured, uploads gracefully fall back to base64 so the
+        // app keeps working.
+        const STORAGE_BUCKET = 'media';
+
+        // Convert a base64 data URL into a Blob for storage upload.
+        function _dataUrlToBlob(dataUrl) {
+            const [head, body] = dataUrl.split(',');
+            const mime = (head.match(/data:(.*?);/) || [, 'image/jpeg'])[1];
+            const bin = atob(body);
+            const arr = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+            return new Blob([arr], { type: mime });
+        }
+
+        // Upload a file to Supabase Storage and return a public URL.
+        // Falls back to a base64 data URL if storage is unavailable.
+        async function uploadToStorage(file, prefix = 'posts', maxWidth = 800, quality = 0.7) {
+            const dataUrl = await processImage(file, maxWidth, quality);
+            if (!dataUrl) return '';
+            try {
+                const blob = _dataUrlToBlob(dataUrl);
+                const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop().toLowerCase() : 'jpg';
+                const safeExt = /^[a-z0-9]{2,4}$/.test(ext) ? ext : 'jpg';
+                const path = `${prefix}/${currentUser.uid}_${Date.now()}.${safeExt}`;
+                const { error } = await sb.storage
+                    .from(STORAGE_BUCKET)
+                    .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+                if (error) throw error;
+                const pub = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+                return (pub && pub.data && pub.data.publicUrl) ? pub.data.publicUrl : dataUrl;
+            } catch (e) {
+                window.__dbg('Storage upload fallback to base64: ' + (e && e.message ? e.message : e));
+                return dataUrl;
+            }
+        }
 
         window.listenUsers = () => {
             onValue(ref(db, 'users'), snap => {
@@ -1133,6 +1286,8 @@
                 posts.forEach(([pid, post]) => {
                     const u = usersCache[post.uid] || {username: 'Loading...', photo: DEFAULT_AVATAR};
                     const isLiked = post.likes && post.likes[currentUser.uid];
+                    const likeCount = post.likes ? Object.keys(post.likes).length : 0;
+                    const safeCaption = post.caption ? String(post.caption).replace(/</g,'&lt;') : '';
                     let followBtnHtml = '';
                     if(post.uid !== currentUser.uid) {
                         const isFollowing = followingCache[post.uid];
@@ -1141,27 +1296,37 @@
                     let commentsHtml = '';
                     if(post.comments) {
                         Object.values(post.comments).forEach(c => {
-                            commentsHtml += `<div class="comment-item"><b>${c.username}</b> ${c.text}</div>`;
+                            const safeText = String(c.text).replace(/</g,'&lt;');
+                            const safeName = String(c.username).replace(/</g,'&lt;');
+                            commentsHtml += `<div class="comment-item"><b>${safeName}</b> ${safeText}</div>`;
                         });
                     }
                     const div = document.createElement('div');
                     div.className = 'post-card';
                     const adminDelHtml = isAdmin() ? `<i class="fas fa-trash-alt adm-del adm-act-btn" title="Hapus (admin)" onclick="adminDeletePost('${pid}')"></i>` : '';
+                    // Image is only rendered when the post has one (text-only posts skip it).
+                    const imgHtml = post.image
+                        ? `<img src="${post.image}" class="post-img" ondblclick="toggleLike('${pid}', '${post.uid}')" onerror="this.style.display='none'">`
+                        : '';
+                    // For text-only posts show the caption as the main body; otherwise caption shows below image.
+                    const bodyHtml = (!post.image && safeCaption)
+                        ? `<div class="post-text-only">${safeCaption}</div>`
+                        : (safeCaption ? `<div class="caption-area"><b>${u.username}</b> ${safeCaption}</div>` : '');
+                    const likesHtml = likeCount > 0 ? `<div class="post-likes-count">${likeCount} suka</div>` : '';
                     div.innerHTML = `
                         <div class="post-header">
-                            <img src="${u.photo || DEFAULT_AVATAR}" class="p-avatar">
+                            <img src="${u.photo || DEFAULT_AVATAR}" class="p-avatar" onerror="this.src='${DEFAULT_AVATAR}'">
                             <div><div style="font-weight:700; color:#333; font-size:14px;">${u.username}${adminBadgeHtml(post.uid)}</div></div>
                             ${adminDelHtml}
                             ${followBtnHtml}
                         </div>
-                        <img src="${post.image}" class="post-img" ondblclick="toggleLike('${pid}', '${post.uid}')">
+                        ${imgHtml}
                         <div class="post-actions">
                             <i class="${isLiked ? 'fas' : 'far'} fa-heart action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${pid}', '${post.uid}')"></i>
                             <i class="far fa-comment action-btn" onclick="toggleCommentSection('${pid}')"></i>
                         </div>
-                        <div class="caption-area">
-                            <b>${u.username}</b> ${post.caption}
-                        </div>
+                        ${likesHtml}
+                        ${bodyHtml}
                         <div class="comment-section">
                             <span class="comment-toggle" onclick="toggleCommentSection('${pid}')">
                                 ${post.comments ? `View all ${Object.keys(post.comments).length} comments` : 'Add a comment...'}
@@ -1232,13 +1397,28 @@
                 document.getElementById('upload-preview-img').style.display = 'block';
                 document.querySelector('.upload-area i').style.display = 'none';
                 document.querySelector('.upload-area span').style.display = 'none';
+                const rm = document.getElementById('remove-img-btn');
+                if (rm) rm.style.display = 'flex';
             }
         };
 
+        window.clearUploadImage = () => {
+            document.getElementById('post-file').value = '';
+            const img = document.getElementById('upload-preview-img');
+            img.src = '';
+            img.style.display = 'none';
+            document.querySelector('.upload-area i').style.display = 'block';
+            document.querySelector('.upload-area span').style.display = 'block';
+            const rm = document.getElementById('remove-img-btn');
+            if (rm) rm.style.display = 'none';
+        };
+
         window.uploadPost = async () => {
-            const file = document.getElementById('post-file').files[0];
-            const caption = document.getElementById('post-caption').value;
-            if(!file) return alert("Please select an image.");
+            const fileInput = document.getElementById('post-file');
+            const file = fileInput.files[0];
+            const caption = document.getElementById('post-caption').value.trim();
+            // Post is free to be text-only, image-only, or text + image.
+            if(!file && !caption) return alert("Tulis sesuatu atau pilih gambar untuk membuat postingan.");
             const c = checkLimit('posts');
             if (!c.ok) {
                 const tier = getTier(myTier);
@@ -1248,13 +1428,14 @@
             document.getElementById('post-btn-text').style.display = 'none';
             document.getElementById('post-loader').style.display = 'block';
             try {
-                const base64 = await processImage(file, 800, 0.7);
-                await push(ref(db, 'posts'), { uid: currentUser.uid, image: base64, caption: caption, timestamp: Date.now() });
-                document.getElementById('post-file').value = "";
+                // Image is optional; only upload when the user picked one.
+                const imageUrl = file ? await uploadToStorage(file, 'posts', 800, 0.7) : '';
+                const payload = { uid: currentUser.uid, caption: caption, timestamp: Date.now() };
+                if (imageUrl) payload.image = imageUrl;
+                await push(ref(db, 'posts'), payload);
+                fileInput.value = "";
                 document.getElementById('post-caption').value = "";
-                document.getElementById('upload-preview-img').style.display = 'none';
-                document.querySelector('.upload-area i').style.display = 'block';
-                document.querySelector('.upload-area span').style.display = 'block';
+                clearUploadImage();
                 nav('view-home');
                 await recordUsage('posts');
                 await awardPoints(currentUser.uid, POINTS.POST, `post`);
@@ -1276,8 +1457,8 @@
         }
         window.uploadStory = async (input) => {
             if(input.files[0]) {
-                const b64 = await processImage(input.files[0], 300, 0.5);
-                await push(ref(db, 'stories'), { uid: currentUser.uid, image: b64, timestamp: Date.now() });
+                const url = await uploadToStorage(input.files[0], 'stories', 300, 0.5);
+                if (url) await push(ref(db, 'stories'), { uid: currentUser.uid, image: url, timestamp: Date.now() });
             }
         };
 
@@ -1293,7 +1474,17 @@
             onValue(query(ref(db, 'posts'), orderByKey()), snap => {
                 const grid = document.getElementById('profile-grid'); grid.innerHTML = '';
                 let count = 0; const data = snap.val();
-                if(data) Object.values(data).reverse().forEach(p => { if(p.uid === currentUser.uid) { count++; grid.innerHTML += `<img src="${p.image}" class="grid-item">`; } });
+                if(data) Object.values(data).reverse().forEach(p => {
+                    if(p.uid === currentUser.uid) {
+                        count++;
+                        // Text-only posts render as a placeholder tile in the profile grid.
+                        if (p.image) {
+                            grid.innerHTML += `<img src="${p.image}" class="grid-item" onerror="this.style.display='none'">`;
+                        } else {
+                            grid.innerHTML += `<div class="grid-item grid-item-text"><i class="fas fa-align-left"></i></div>`;
+                        }
+                    }
+                });
                 document.getElementById('stat-posts').innerText = count;
             });
             onValue(ref(db, `followers/${currentUser.uid}`), snap => document.getElementById('stat-followers').innerText = snap.exists() ? Object.keys(snap.val()).length : 0);
@@ -1302,9 +1493,10 @@
 
         window.uploadProfilePic = async (input) => {
             if(input.files[0]) {
-                const base64 = await processImage(input.files[0], 200, 0.5);
-                await update(ref(db, `users/${currentUser.uid}`), { photo: base64 });
-                document.getElementById('profile-img').src = base64;
+                const url = await uploadToStorage(input.files[0], 'avatars', 200, 0.5);
+                if (!url) return;
+                await update(ref(db, `users/${currentUser.uid}`), { photo: url });
+                document.getElementById('profile-img').src = url;
                 loadProfile();
                 listenFeed();
             }
@@ -1424,7 +1616,7 @@
             <h4>Penggunaan Data</h4>
             <p>Data digunakan untuk menjalankan layanan sosial, sistem poin, dan transaksi antar pengguna. Data tidak dijual ke pihak ketiga.</p>
             <h4>Keamanan</h4>
-            <p>Data disimpan pada infrastruktur Firebase dengan aturan keamanan. PIN transaksi di-hash dan tidak ditampilkan kepada siapapun.</p>
+            <p>Data disimpan pada infrastruktur Supabase dengan aturan keamanan. PIN transaksi di-hash dan tidak ditampilkan kepada siapapun.</p>
             <h4>Hak Pengguna</h4>
             <p>Anda dapat mengubah profil kapan saja. Penghapusan akun dapat dilakukan melalui kontak dukungan.</p>
         `);
@@ -2029,6 +2221,36 @@
         //
         //  -- 5. Auth: in Supabase dashboard set "Confirm email" = OFF so the phone-based
         //  --    synthetic emails (e.g. 08xxxxx@beruang.phone) can sign in immediately.
+        //
+        //  ============================================================
+        //  STORAGE SETUP (run once in the Supabase SQL editor / dashboard)
+        //  ============================================================
+        //  The app uploads post images, stories, and avatars to a Storage bucket
+        //  named "media" (see STORAGE_BUCKET). If the bucket is missing the app
+        //  falls back to storing base64 in the database, so create the bucket for
+        //  best performance:
+        //
+        //  -- 1. Create a PUBLIC bucket named "media":
+        //  insert into storage.buckets (id, name, public)
+        //    values ('media', 'media', true) on conflict (id) do nothing;
+        //
+        //  -- 2. Allow authenticated users to upload, and anyone to read:
+        //  create policy "media read" on storage.objects
+        //    for select using (bucket_id = 'media');
+        //  create policy "media upload" on storage.objects
+        //    for insert to authenticated with check (bucket_id = 'media');
+        //  create policy "media update own" on storage.objects
+        //    for update to authenticated using (bucket_id = 'media');
+        //  create policy "media delete own" on storage.objects
+        //    for delete to authenticated using (bucket_id = 'media');
+        //
+        //  -- 3. (Optional) S3 protocol credentials supplied by the user enable
+        //  --    connecting to the same bucket over the S3 API:
+        //  --    Endpoint:  https://jzyfxdysukzvnfllcbvq.storage.supabase.co/storage/v1/s3
+        //  --    Region:    ap-south-1
+        //  --    Access key id + secret are created in Dashboard > Storage > S3 Connection.
+        //  --    The browser app uses the JS client (sb.storage), not the S3 endpoint,
+        //  --    so the S3 keys are only needed for server-side / CLI uploads.
     </script>
 </body>
 </html>
