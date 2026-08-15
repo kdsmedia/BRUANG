@@ -398,10 +398,11 @@
         //     -> integer (1 if updated, 0 if concurrent change)
 
         const _escLike = (s) => String(s).replace(/\\/g,'\\\\').replace(/%/g,'\\%').replace(/_/g,'\\_');
-        // PostgREST `.or()`/`.filter()` raw strings do NOT URL-encode values, so
-        // slashes in paths (e.g. wallets/<uuid>/acctId) break the LIKE filter.
-        // Build a properly URL-encoded "path.like.<prefix>/%" segment.
-        const _likeFilter = (path) => 'path.like.' + encodeURIComponent(path + '/%');
+        // PostgREST `.or()` raw filter: match exact path OR descendants.
+        // Do NOT encodeURIComponent here — Supabase JS `.or()` URL-encodes the value
+        // automatically. Do NOT use _escLike either — we need `%` as a SQL wildcard,
+        // not a literal. Pattern: (path.eq.<path>,path.like.<path>/%)
+        const _pathOrChildren = (path) => `path.eq.${path},path.like.${path}/%`;
 
         // Flatten a JSON value into {path: value} leaf entries (objects recurse).
         function _flatten(obj, prefix, out) {
@@ -451,8 +452,7 @@
         async function _readValue(path) {
             const { data, error } = await sb.from('nodes')
                 .select('path,value')
-                .filter('path', 'eq', path)
-                .or(_likeFilter(path));
+                .or(_pathOrChildren(path));
             if (error) { console.error('read error', path, error); return null; }
             return _buildTree(data || [], path);
         }
@@ -471,11 +471,10 @@
         async function get(r) { const v = await _readValue(r.path); return _snap(v); }
         async function set(r, value) {
             const path = r.path;
-            // delete existing descendants (and exact if it was a leaf)
+            // delete existing node and all descendants
             const { error: de } = await sb.from('nodes')
                 .delete()
-                .filter('path', 'eq', path)
-                .or(_likeFilter(path));
+                .or(_pathOrChildren(path));
             if (de) console.error('set delete error', de);
             if (value === null || value === undefined) return;
             const leaves = {};
@@ -496,8 +495,7 @@
         async function remove(r) {
             const { error } = await sb.from('nodes')
                 .delete()
-                .filter('path', 'eq', r.path)
-                .or(_likeFilter(r.path));
+                .or(_pathOrChildren(r.path));
             if (error) console.error('remove error', error);
         }
 
@@ -519,7 +517,7 @@
             }
             // initial
             _readValue(path).then(v => cb(_snap(v)));
-            const filter = _likeFilter(path);
+            const rtFilter = `path=like.${path}/%`;
             let timer = null;
             const schedule = () => {
                 if (timer) return;
@@ -532,7 +530,7 @@
                 timer = setTimeout(async () => { timer = null; const v = await _readValue(path); dispatch(v); }, 120);
             };
             const channel = sb.channel('rt:' + path)
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes', filter }, dispatchSchedule)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes', filter: rtFilter }, dispatchSchedule)
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes', filter: `path=eq.${path}` }, dispatchSchedule)
                 .subscribe();
             _subs.set(path, { channel, cbs });
