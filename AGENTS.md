@@ -15,6 +15,36 @@ that DID work:
 - Stray leading characters (`O`, `y`, `$`, etc.) shown in terminal stdout before
   lines are **display artifacts only** — verify with `grep -nE "^[a-z$] "` (empty = clean).
 
+## CRITICAL: Supabase PostgREST LIKE filter (THE root-cause bug)
+The app uses a key-value `nodes` table (columns: `path`, `value`) to emulate
+Firebase RTDB. Reading/writing a path requires matching the exact path AND all
+descendants (`path.like.<path>/%`).
+
+**Three WRONG approaches that all return 0 rows:**
+1. `_escLike()` escapes `%` → `\%` (SQL literal percent). Pattern
+   `wallets/uid/\%` matches NOTHING because `%` is no longer a wildcard.
+2. `encodeURIComponent(path + '/%')` causes double-encoding — Supabase JS
+   `.or()` already URL-encodes the value, so it becomes `%252F`.
+3. `.filter('path','eq',path).or(...)` creates `path = X AND (path = X OR path LIKE X/%)`
+   which simplifies to just `path = X` — does NOT match descendants.
+
+**CORRECT approach (commit bd805ad):**
+```js
+const _pathOrChildren = (path) => `path.eq.${path},path.like.${path}/%`;
+// Use with .or() for REST queries:
+.or(_pathOrChildren(path))
+// For realtime subscriptions, use = not . :
+filter: `path=like.${path}/%`
+```
+No escaping, no encoding. Supabase JS `.or()` handles URL encoding internally.
+Verified via curl: `or=(path.eq.X,path.like.X/%)` → 44 rows.
+
+## Supabase config
+- URL: `https://jzyfxdysukzvnfllcbvq.supabase.co`
+- Table: `nodes` (path/value key-value store emulating Firebase RTDB)
+- Auth: phone-based email (`085813899649@beruang.phone`)
+- Admin UID: `a749e981-1c67-4671-9b9a-12f8fbfd8db3` (acctId=140693, role=admin, tier=Master)
+
 ## Verify JS
 Extract the module script and run `node --check`:
 ```bash
