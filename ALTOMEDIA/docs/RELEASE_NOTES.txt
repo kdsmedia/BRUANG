@@ -1,0 +1,96 @@
+================================================================================
+  CATATAN RILIS (RELEASE NOTES) — BERUANG
+  Package: com.altomedia.beruang
+  Pengembang: ALTOMEDIA
+================================================================================
+
+--------------------------------------------------------------------------------
+v1.0.0  —  15 Agustus 2026  —  RILIS PERDANA
+--------------------------------------------------------------------------------
+
+Selamat datang di BERUANG v1.0.0! Ini adalah rilis perdana aplikasi media
+sosial berbasis poin dari ALTOMEDIA.
+
+FITUR BARU:
+  - Pendaftaran & Login akun dengan autentikasi aman (Supabase Auth)
+  - ID Akun unik 6 digit otomatis, dicek duplikasinya
+  - Feed beranda dengan posting teks/gambar
+  - Stories (cerita) yang menghilang otomatis
+  - Sistem poin: komentar (+50), posting (+20), follow (+10 ke yang diikuti)
+  - Dompet poin dengan saldo dan tier/ranking:
+      Star (0) > Bronze (500) > Silver (2.000) > Gold (5.000) > Master (15.000)
+  - Transfer poin antar pengguna via:
+      - Pemindaian kode QR akun penerima (kamera + jsQR)
+      - Input manual ID Akun 6 digit
+  - PIN transaksi 4 digit (disimpan ter-hash) untuk mengesahkan transfer
+  - Transaksi atomik (debit+kredit dalam satu operasi) untuk keamanan saldo
+  - Riwayat transaksi (history) lengkap
+  - Obrolan (chat) real-time antar pengguna
+  - Notifikasi aktivitas (komentar, suka, follow, pesan, transaksi)
+  - Profil pengguna: nama, telepon, email (opsional), jenis kelamin, foto
+  - Edit profil (nama lengkap, telepon, email, jenis kelamin)
+  - Follow/unfollow pengguna lain
+  - Panel admin (untuk akun admin): moderation & insight
+  - Aplikasi Android native (WebView) dengan:
+      - minSdk 23, targetSdk 37 (Android 16)
+      - Dibungkus dalam AAB signed (Play App Signing ready)
+      - Keystore: ALTOMEDIA.jks (alias kdsmedia, CN=ALTOMEDIA)
+
+PERBAIKAN:
+  - (Rilis perdana)
+
+TEKNISAL:
+  - Backend: Supabase (Postgrest, Auth)
+  - Realtime feed/chat: Supabase JS SDK di dalam WebView
+  - SDK native (Kotlin): Supabase Kotlin SDK 3.6.0 + Ktor 3.0.3
+  - Build: AGP 8.13.2, Kotlin 2.2.20, Gradle 8.13
+
+UKURAN PAKET:
+  - APK release: ~8,1 MB
+  - AAB release: ~7,5 MB
+
+CATATAN UNTUK PENGGUNA:
+  - Jaga kerahasiaan PIN transaksi Anda. Kami tidak akan meminta PIN.
+  - Poin bersifat virtual dan tidak dapat ditukar uang.
+  - Untuk bantuan, hubungi: support@altomedia.id
+
+--------------------------------------------------------------------------------
+PANDUAN MENAMBAHKAN RILIS BARU (untuk pengembang)
+--------------------------------------------------------------------------------
+
+Setiap kali ada build baru, tambahkan entri baru di ATAS bagian ini dengan
+format:
+
+vX.Y.Z  —  TANGGAL  —  JUDUL SINGKAT
+----------------------------------------
+DESKRIPSI SINGKAT:
+
+FITUR BARU:
+  - ...
+
+PERBAIKAN (BUG FIX):
+  - ...
+
+PERUBAHAN (CHANGES):
+  - ...
+
+CATATAN TEKNIS:
+  - ...
+
+Langkah update:
+  1. Naikkan versionCode & versionName di android/app/build.gradle.kts.
+  2. Rebuild: cd android && ./gradlew :app:bundleRelease --no-daemon
+  3. Salin AAB: cp app/build/outputs/bundle/release/app-release.aab \
+          ../ALTOMEDIA/release/beruang-vX.Y.Z-release.aab
+  4. Tambahkan entri catatan rilis di file ini.
+  5. Commit & push.
+  6. Upload AAB baru ke Play Console (track yang sama atau baru).
+
+Contoh penomoran versi:
+  - 1.0.x = perbaikan bug kecil
+  - 1.x.0 = fitur baru
+  - x.0.0 = perubahan besar
+
+================================================================================
+  Akhir catatan rilis.
+================================================================================

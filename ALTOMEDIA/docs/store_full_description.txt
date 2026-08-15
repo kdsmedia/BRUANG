@@ -1,0 +1,99 @@
+BERUANG — Media Sosial Berbasis Poin
+
+BERUANG adalah aplikasi media sosial yang mengubah setiap interaksi menjadi
+nilai nyata. Posting, komentar, dan follow bukan lagi sekadar angka — di
+sini, setiap aktivitas memberi Anda poin yang dapat dikumpulkan, ditransfer
+ke teman, dan digunakan untuk naik tier.
+
+FITUR UTAMA:
+
+• Feed & Posting
+  Bagikan momen dalam bentuk teks dan gambar di feed beranda. Lihat posting
+  dari pengguna yang Anda ikuti, beri suka, dan tinggalkan komentar.
+
+• Stories (Cerita)
+  Unggah cerita yang menghilang otomatis. Cerita muncul di atas feed dan
+  bisa dilihat pengikut Anda.
+
+• Sistem Poin
+  - Komentar: +50 poin
+  - Posting: +20 poin
+  - Diikuti (follower baru): +10 poin untuk Anda
+  Poin adalah ukuran kontribusi Anda di komunitas BERUANG.
+
+• Dompet Poin & Transfer
+  Setiap akun memiliki dompet yang menampilkan saldo poin. Transfer poin ke
+  pengguna lain dengan dua cara mudah:
+  - Pindai kode QR akun penerima menggunakan kamera ponsel
+  - Masukkan ID Akun 6 digit penerima secara manual
+  Setiap transaksi divalidasi dengan PIN transaksi 4 digit dan diproses
+  secara atomik (debit + kredit dalam satu operasi) agar saldo selalu akurat.
+
+• PIN Transaksi Aman
+  PIN 4 digit disimpan dalam bentuk hash, bukan teks biasa. Anda yang
+  memegang kendali penuh — jangan pernah bagikan PIN ke siapa pun.
+
+• Riwayat Transaksi
+  Lihat semua transaksi masuk dan keluar dalam satu daftar riwayat yang rapi.
+
+• Tier & Ranking
+  Naik tier berdasarkan jumlah poin yang Anda kumpulkan:
+  - Star (0 poin)
+  - Bronze (500 poin)
+  - Silver (2.000 poin)
+  - Gold (5.000 poin)
+  - Master (15.000 poin)
+  Setiap kenaikan tier menandai perjalanan Anda di komunitas.
+
+• Obrolan (Chat) Real-time
+  Ngobrol langsung dengan pengguna lain. Pesan dikirim dan diterima secara
+  real-time sehingga percakapan terasa hidup.
+
+• Notifikasi
+  Dapatkan pemberitahuan untuk komentar, suka, follow, pesan baru, dan
+  transaksi poin yang masuk.
+
+• Profil Dapat Diedit
+  Lengkapi profil Anda: nama lengkap, nomor telepon, email (opsional),
+  jenis kelamin, dan foto profil. Setiap akun mendapat ID Akun 6 digit
+  unik otomatis yang berfungsi sebagai alamat transfer poin.
+
+• ID Akun Unik
+  ID Akun 6 digit dibuat otomatis dan dicek duplikasinya. ID ini permanen
+  dan digunakan sebagai alamat tujuan transfer poin — mirip nomor rekening
+  virtual di dalam aplikasi.
+
+KENAPA BERUANG?
+
+- Memberi nilai nyata atas kontribusi Anda, bukan sekadar suka kosong.
+- Menggabungkan media sosial dengan gamifikasi yang sehat.
+- Mendorong interaksi berkualitas lewat insentif poin.
+- Ekosistem demokratis: pengguna baru dan kreator sama-sama diuntungkan.
+- Privasi diutamakan: PIN ter-hash, data dienkripsi saat transit.
+
+PRIVASI & KEAMANAN:
+
+BERUANG memperlakukan data Anda dengan serius. PIN transaksi disimpan dalam
+bentuk hash. Data dikirim melalui koneksi terenkripsi (HTTPS/TLS). Anda
+berhak meminta akses, koreksi, dan penghapusan data pribadi sesuai UU
+Pelindungan Data Pribadi (UU PDP) Indonesia. Baca Kebijakan Privasi lengkap
+di dalam aplikasi atau di situs ALTOMEDIA.
+
+TENTANG POIN:
+
+Poin dalam BERUANG bersifat virtual dan TIDAK memiliki nilai moneter nyata.
+Poin tidak dapat ditukar dengan uang. Poin hanya digunakan di dalam aplikasi
+untuk transfer antar pengguna dan kenaikan tier.
+
+TENTANG PENGEMBANG:
+
+BERUANG dikembangkan oleh ALTOMEDIA, pengembang yang berbasis di Karawang,
+Jawa Barat, Indonesia. Kami berkomitmen membangun aplikasi yang bermakna,
+aman, dan menyenangkan untuk komunitas Indonesia dan dunia.
+
+Dukungan pelanggan: support@altomedia.id
+Kebijakan Privasi: lihat di dalam aplikasi / situs ALTOMEDIA
+Ketentuan Layanan: lihat di dalam aplikasi / situs ALTOMEDIA
+
+Unduh BERUANG sekarang, posting momen pertama Anda, dan rasakan media sosial
+yang benar-benar menghargai setiap interaksi Anda. Selamat bergabung!

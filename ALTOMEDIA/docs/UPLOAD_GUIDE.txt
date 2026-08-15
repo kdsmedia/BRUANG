@@ -1,0 +1,229 @@
+================================================================================
+  PANDUAN UPLOAD RILIS & UPLOAD LISTING — BERUANG
+  Aplikasi: BERUANG
+  Package: com.altomedia.beruang
+  Pengembang: ALTOMEDIA
+  Target: Google Play Console (Play Store)
+================================================================================
+
+--------------------------------------------------------------------------------
+BAGIAN 1 — PERSIAPAN SEBELUM UPLOAD
+--------------------------------------------------------------------------------
+
+1. Pastikan Anda memiliki akun Google Play Console yang aktif (Play Developer).
+   - Daftar di: https://play.google.com/console
+   - Biaya pendaftaran satu kali: USD 25.
+   - Gunakan akun Google developer ALTOMEDIA.
+
+2. Siapkan semua file paket rilis di folder: ALTOMEDIA/release/
+   - beruang-v1.0.0-release.aab   <-- FILE UTAMA UNTUK PLAY STORE (wajib)
+   - beruang-v1.0.0-release.apk   <-- untuk pengujian internal / sideload
+   - beruang-v1.0.0-debug.apk    <-- untuk pengujian debug di perangkat
+
+   PENTING:
+   - Play Store REQUIRES format AAB (Android App Bundle) untuk app baru sejak 2021.
+   - AAB sudah ditandatangani dengan keystore ALTOMEDIA.jks (alias kdsmedia).
+   - APK release disertakan untuk uji sideload / jalur internal test.
+
+3. Siapkan keystore untuk update di masa depan:
+   - File: ALTOMEDIA.jks
+   - Password keystore: Kdsmedia@123
+   - Alias: kdsmedia
+   - Password key: Kdsmedia@123
+   - Validity: 10000 hari
+
+   PERINGATAN PENTING:
+   - SIMPAN KEYSTORE INI DENGAN AMAN! Jangan hilangkan.
+   - Untuk UPDATE aplikasi, Anda WAJIB menggunakan keystore yang SAMA.
+   - Jika keystore hilang, Anda tidak bisa memperbarui aplikasi dengan package
+     name yang sama dan harus membuat aplikasi baru (package name baru).
+   - Backup keystore di minimal 2 tempat (cloud + lokal).
+
+4. Siapkan URL Privacy Policy dan Terms of Service:
+   - Host dokumen di: ALTOMEDIA/legal/PRIVACY_POLICY.md dan TERMS_OF_SERVICE.md
+   - Upload ke hosting publik (mis. GitHub Pages, situs ALTOMEDIA, atau
+     layanan seperti privacypolicies.com) sehingga punya URL publik.
+   - Play Console MEMINTA URL Privacy Policy yang valid.
+
+--------------------------------------------------------------------------------
+BAGIAN 2 — MEMBUAT APLIKASI BARU DI PLAY CONSOLE
+--------------------------------------------------------------------------------
+
+1. Login ke https://play.google.com/console
+2. Klik "Create app" (Buat aplikasi).
+3. Isi detail awal:
+   - App name: BERUANG
+   - Default language: Bahasa Indonesia (id) — bisa tambah English (en-US)
+   - App type: App (bukan Game) atau Game (sesuai kategori pilihan Anda).
+     REKOMENDASI: Kategori "Social" (Media Sosial), bukan Game, karena
+     BERUANG adalah aplikasi media sosial. Namun jika ingin menampilkan
+     sebagai game sosial, pilih Game > Social.
+   - Free / Paid: Free (Gratis) — BERUANG gratis dengan sistem poin virtual.
+
+4. Deklarasi: centang "Developer Program Policies" dan "US export laws".
+5. Klik "Create app".
+
+--------------------------------------------------------------------------------
+BAGIAN 3 — STORE LISTING (DAFTAR PLAY)
+--------------------------------------------------------------------------------
+
+A. DASHBOARD > GROW > STORE PRESENCE > MAIN STORE LISTING
+
+1. App details:
+   - App name: BERUANG
+   - Short description (max 80 char):
+     "Media sosial berbasis poin — posting, chat, transfer poin & naik tier!"
+   - Full description (max 4000 char):
+     (Salin dari file: ALTOMEDIA/docs/store_full_description.txt)
+
+2. App Category:
+   - App category: Social
+   - (Jika dipilih Game): Game > Social
+
+3. Tags (opsional, pilih yang relevan):
+   - Social, Chat, Community, Messaging, Sharing
+
+4. Privacy Policy:
+   - URL Privacy Policy: (tempel URL publik Privacy Policy Anda)
+   - Centang: "My app doesn't request access to sensitive permissions..."
+
+B. GRAPHICS (dari folder ALTOMEDIA/playstore/):
+   - App icon (512x512 PNG): app_icon_512.png
+   - Feature graphic (1024x500 PNG): feature_graphic.png
+   - Phone screenshots (min 2, max 8; 16:9 atau 9:16; min 320px, max 3840px):
+       screenshots/screenshot_01_feed.png
+       screenshots/screenshot_02_wallet.png
+       screenshots/screenshot_03_chat.png
+       screenshots/screenshot_04_profile.png
+       screenshots/screenshot_05_stories.png
+   - 1080x1920 direkomendasikan (screenshot kami sudah ukuran ini).
+
+C. APP CONTENT (DASHBOARD > POLICY AND PROGRAMS > APP CONTENT):
+   - Privacy Policy URL
+   - App access: pilih "All functionality is available without restrictions"
+   - Ads: nyatakan apakah Aplikasi menampilkan iklan (saat ini: TIDAK)
+   - In-app purchases: BERUANG saat ini TIDAK memiliki IAP berbayar (poin virtual gratis)
+   - Data safety: ISI FORM DATA SAFETY (lihat panduan di BAGIAN 6)
+   - Security practices: sesuaikan
+   - Content rating: isi kuesioner content rating (Isi IARC)
+   - Target audience: 13+ (sebagaimana Privacy Policy)
+   - News app: Bukan
+   - Government app: Bukan
+   - Financial apps: BERUANG memakai poin VIRTUAL (bukan uang riil), nyatakan
+     bahwa poin tidak memiliki nilai moneter dan tidak dapat ditukar uang.
+
+--------------------------------------------------------------------------------
+BAGIAN 4 — UPLOAD PAKET RILIS (AAB)
+--------------------------------------------------------------------------------
+
+1. Dashboard > Release > Production (Produksi).
+   - Untuk pengujian dulu: pilih "Internal testing" (Pengujian internal)
+     sebelum produksi. Rekomendasi: Internal test > Closed test > Open track >
+     Production.
+
+2. Klik "Create new release".
+3. Di "App bundle", upload file: beruang-v1.0.0-release.aab
+   - Play Console akan memverifikasi signing (v2, ALTOMEDIA).
+4. Release name: "v1.0.0"
+5. Release notes (Bahasa Indonesia):
+   (Salin dari file: ALTOMEDIA/docs/release_notes.txt bagian v1.0.0)
+6. Klik "Save" lalu "Review release" lalu "Start rollout".
+
+PENTING tentang signing:
+   - AAB sudah ditandatangani dengan keystore ALTOMEDIA.jks.
+   - Jika Play Console meminta "Use Play App Signing" (enroll), ijinkan — Play
+     akan meng-generate app signing key dari kunci upload Anda (keystore Anda).
+   - INI AMAN dan direkomendasikan Google.
+
+--------------------------------------------------------------------------------
+BAGIAN 5 — VERIFIKASI RILIS
+--------------------------------------------------------------------------------
+
+1. Cek "App bundle explorer" untuk melihat detail APK hasil split AAB.
+2. Cek "Artifact" untuk download APK yang dihasilkan untuk testing.
+3. Pada track Production: rilis berstatus "In review" (ditinjau) lalu "Live".
+4. Proses review biasanya 1-3 hari (bisa lebih lama untuk rilis pertama).
+
+--------------------------------------------------------------------------------
+BAGIAN 6 — FORM DATA SAFETY (WAJIB)
+--------------------------------------------------------------------------------
+
+Di App Content > Data safety, nyatakan data yang dikumpulkan:
+
+A. Data yang dikumpulkan (wajib nyatakan):
+   - Personal info: Email address, Phone number, User IDs, Name
+   - Financial info: Purchase history (riwayat transaksi poin)
+   - Messages: In-app messages (chat)
+   - Photos and videos: Photos, Videos (jika upload)
+   - App activity: App interactions, Search history, User-generated content
+   - App info and performance: Crash logs, Diagnostics
+   - IDs: Device or other IDs
+
+B. Untuk setiap jenis data, nyatakan:
+   - Apakah dibutuhkan / opsional
+   - Apakah data dienkripsi saat transit: YA
+   - Apakah pengguna bisa minta hapus data: YA
+
+C. Security practices:
+   - Data is encrypted in transit: YA (TLS/HTTPS)
+   - Users can request data deletion: YA
+
+D. Declaring penggunaan:
+   - Pilih: "Yes, my app collects data."
+   - Beri keterangan tiap kategori sesuai Privacy Policy.
+
+--------------------------------------------------------------------------------
+BAGIAN 7 — TARGET SDK & PERSYARATAN PLAY SAAT INI
+--------------------------------------------------------------------------------
+
+Aplikasi BERUANG sudah memenuhi persyaratan Play Console terkini:
+   - minSdkVersion: 23 (Android 6.0 Marshmallow)
+   - targetSdkVersion: 37 (Android 16)
+   - compileSdkVersion: 37
+   - buildToolsVersion: 37.0.0
+   - Format rilis: AAB (Android App Bundle)
+   - Signing: v2 scheme (CN=ALTOMEDIA, O=ALTOMEDIA, L=Karawang, ST=Jawa Barat, C=ID)
+   - App Bundle sudah signed dengan keystore ALTOMEDIA.jks
+
+Catatan target SDK:
+   - Google Play mewajibkan targetSdk terbaru untuk app baru dan update.
+   - targetSdk 37 (Android 16) adalah level terbaru. Jika Play menolak karena
+     targetSdk terlalu rendah di masa depan, naikkan ke API berikutnya lalu
+     rebuild: ./gradlew :app:bundleRelease.
+
+--------------------------------------------------------------------------------
+BAGIAN 8 — CHECKLIST FINAL SEBELUM SUBMIT
+--------------------------------------------------------------------------------
+
+[ ] Akun Play Console aktif
+[ ] Aplikasi dibuat di Play Console (com.altomedia.beruang)
+[ ] Store Listing lengkap (nama, deskripsi, kategori)
+[ ] App icon 512x512 diunggah
+[ ] Feature graphic 1024x500 diunggah
+[ ] Min 2 screenshot (rekomendasi 5) diunggah
+[ ] URL Privacy Policy valid (publik)
+[ ] URL Terms of Service disiapkan (opsional tapi direkomendasi)
+[ ] Form Data Safety diisi
+[ ] Content rating (IARC) diisi
+[ ] Target audience (13+) diisi
+[ ] Aplikasi/iklan/IAP/financial declaration sesuai
+[ ] AAB release diunggah ke track (Internal/Production)
+[ ] Release name & notes diisi
+[ ] Review release > Start rollout
+[ ] Keystore ALTOMEDIA.jks dibackup aman
+
+--------------------------------------------------------------------------------
+BAGIAN 9 — TROUBLESHOOTING UMUM
+--------------------------------------------------------------------------------
+
+- "Your app is using a permission that requires a policy": Jika CAMERA atau
+  READ_MEDIA_IMAGES memicu kebijakan, unggah video demo penggunaan kamera
+  (untuk QR scan) via App Content > Permissions, atau nyatakan penggunaan.
+- "App signing key mismatch": pastikan Anda memakai keystore yang SAMA untuk
+  setiap update. Jangan regenerate keystore.
+- "API level too low": naikkan targetSdk bila diminta (lihat BAGIAN 7).
+- "Privacy policy URL invalid": pastikan URL bisa diakses publik (tanpa login).
+
+================================================================================
+  Akhir panduan. Untuk update berikutnya, lihat: release_notes.txt
+================================================================================

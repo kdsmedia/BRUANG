@@ -1,0 +1,207 @@
+================================================================================
+  ARTIKEL BLOG — BERUANG: Media Sosial Berbasis Poin dari ALTOMEDIA
+  Panjang: 4.000+ karakter
+  Format: teks (siap publikasi di blog/situs ALTOMEDIA)
+================================================================================
+
+JUDUL: BERUANG — Media Sosial Berbasis Poin yang Mengubah Cara Anda Terhubung,
+Berbagi, dan Bertumbuh Bersama Komunitas
+
+TANGGAL TERBIT: 15 Agustus 2026
+PENULIS: Tim ALTOMEDIA
+KATEGORI: Teknologi / Aplikasi / Media Sosial
+
+--------------------------------------------------------------------------------
+
+Di era digital yang serba cepat saat ini, media sosial bukan lagi sekadar tempat
+untuk berbagi momen — ia telah menjadi ruang hidup tempat kita membangun
+identitas, menjalin relasi, dan bahkan menggerakkan ekonomi mikro. Namun
+diantara ribuan platform yang ada, jarang sekali kita menemukan aplikasi yang
+benar-benar memberi nilai nyata atas setiap kontribusi penggunanya. Sebagian
+besar platform hanya mengambil data dan perhatian kita tanpa memberi balasan
+berarti. Inilah celah yang ingin diisi ALTOMEDIA melalui aplikasi terbarunya:
+BERUANG.
+
+BERUANG bukan sekadar aplikasi media sosial biasa. Ia adalah platform yang
+membungkus pengalaman sosial dengan sistem poin yang transparan dan adil.
+Setiap kali Anda berkomentar, setiap kali Anda memposting sesuatu, dan setiap
+kali seseorang mengikuti akun Anda, ada nilai konkret yang mengalir. Konsep ini
+mungkin terdengar sederhana, namun implikasinya cukup mendalam: BERUANG
+membuat setiap interaksi menjadi bermakna, bukan sekadar angka suka yang
+kekosongan makna.
+
+Mari kita telusuri lebih dalam apa yang membuat BERUANG layak mendapat
+perhatian Anda, baik sebagai pengguna maupun sebagai pengamat perkembangan
+aplikasi sosial di Indonesia.
+
+MENGAPA BERUANG BERBEDA
+
+Sebagian besar platform sosial memperlakukan pengguna sebagai produk. Data,
+perhatian, dan waktu Anda dijual ke pengiklan. BERUANG mengambil pendekatan
+berbeda: di sini, partisipasi Anda dihargai dalam bentuk poin. Poin ini bukan
+kosmetik belaka — ia dapat ditransfer antar pengguna, dikumpulkan untuk naik
+tier, dan menjadi tolok ukur kontribusi Anda terhadap komunitas. Bayangkan
+sebuah ekosistem di mana membantu teman naik kelas dengan memberi komentar
+berkualitas tidak hanya terasa baik secara emosional, tetapi juga tercatat
+secara matematis. Itulah inti filosofi BERUANG.
+
+Lebih jauh, BERUANG menggabungkan elemen game (gamifikasi) ke dalam media
+sosial tanpa membuatnya terasa dipaksakan. Tier seperti Star, Bronze, Silver,
+Gold, dan Master memberikan tujuan progresif yang membuat pengguna termotivasi
+untuk tetap aktif. Ini bukan tentang menang atau kalah; ini tentang perjalanan
+pertumbuhan yang terukur.
+
+FITUR UTAMA YANG MEMBUAT BERUANG MENARIK
+
+Pertama, sistem poin yang adil. Komentar memberi Anda 50 poin, posting memberi
+20 poin, dan ketika seseorang mengikuti Anda, pengikut baru Anda mendapat 10
+poin tambahan. Mekanisme ini menciptakan lingkaran positif: semakin aktif Anda,
+semakin banyak poin yang Anda kumpulkan, dan semakin tinggi tier Anda. Ini
+adalah motivasi intrinsik yang sehat, bukan tekanan dari algoritma.
+
+Kedua, dompet poin dan transfer antar pengguna. BERUANG dilengkapi dompet
+virtual di mana saldo poin Anda terlihat jelas. Yang menarik, Anda bisa
+mentransfer poin ke pengguna lain dengan dua cara: memindai kode QR akun
+penerima menggunakan kamera ponsel, atau memasukkan ID Akun 6 digit secara
+manual. Setiap transaksi dilindungi PIN transaksi 4 digit yang disimpan dalam
+bentuk hash, sehingga keamanan tetap terjaga. Transaksi itu sendiri bersifat
+atomik — artinya debit dari pengirim dan kredit ke penerima terjadi dalam satu
+operasi database, mencegah kondisi setengah-jadi yang bisa merugikan salah satu
+pihak. Ini adalah detail teknis yang menunjukkan keseriusan ALTOMEDIA dalam
+membangun sistem yang andal.
+
+Ketiga, tier dan ranking. Tier bukan hanya label estetis. Ia mencerminkan
+dedikasi Anda dalam komunitas. Mulai dari Star untuk pemula, Bronze di 500
+poin, Silver di 2.000 poin, Gold di 5.000 poin, hingga Master di 15.000 poin.
+Setiap kenaikan membawa rasa pencapaian yang nyata, dan membuka potensi
+fitur atau hak istimewa di masa depan.
+
+Keempat, fitur sosial lengkap. BERUANG memiliki feed beranda yang menampilkan
+posting dari pengguna yang Anda ikuti, stories yang menghilang otomatis layaknya
+platform besar, obrolan real-time antar pengguna, notifikasi aktivitas, serta
+profil yang dapat diedit. Semua ini dikemas dalam antarmuka yang bersih dengan
+tema warna khas BERUANG — amber dan cokelat hangat yang menggemaskan,
+terinspirasi dari maskot beruang.
+
+Kelima, keamanan dan privasi. Dalam dunia di mana kebocoran data semakin sering,
+BERUANG mengambil privasi serius. PIN transaksi tidak pernah disimpan dalam
+teks biasa. ID Akun unik dibuat otomatis dan dicek duplikasinya. Kebijakan
+privasi yang transparan menjelaskan secara rinci data apa yang dikumpulkan dan
+bagaimana digunakan. Untuk pengguna yang sadar privasi, ini adalah kelegaan.
+
+DIBALIK LAYAR: ARSITEKTUR TEKNIS BERUANG
+
+Sebagai pengembang, Anda mungkin penasaran dengan bagaimana BERUANG dibangun.
+Aplikasi ini menggunakan Supabase sebagai backend — platform open-source yang
+menyediakan database Postgres, autentikasi, dan realtime. Di sisi klien, BERUANG
+menggabungkan pendekatan WebView yang membungkus aplikasi web tunggal (single-
+file index.html) dengan integrasi native Kotlin menggunakan Supabase Kotlin SDK
+dan Ktor. Ini berarti pengembangan iteratif cepat: fitur baru bisa dirilis di
+sisi web dan langsung tersedia di aplikasi, sementara lapisan native memberikan
+akses ke kemampuan perangkat seperti kamera dan kode QR.
+
+Versi Android native ini dibangun dengan Android Gradle Plugin 8.13.2, Kotlin
+2.2.20, dan Gradle 8.13. Target SDK 37 (Android 16) dengan minSdk 23 memastikan
+kompatibilitas luas dari Android 6.0 hingga Android terbaru. Aplikasi
+didistribusikan dalam format AAB (Android App Bundle) yang ditandatangani
+dengan keystore ALTOMEDIA.jks — siap untuk Google Play App Signing. Ukuran
+paket yang ramping, sekitar 7,5 MB untuk AAB dan 8 MB untuk APK, membuat
+unduhan cepat bahkan di koneksi terbatas.
+
+DETAIL ini menunjukkan bahwa BERUANG bukan proyek iseng. Dari pilihan toolchain
+hingga strategi signing, ada perhatian terhadap kualitas rilis yang layak
+dikagumi.
+
+PENGALAMAN PENGGUNA: DARI DAFTAR HINGGA MASTER
+
+Mari kita bayangkan perjalanan seorang pengguna baru. Anda mengunduh BERUANG,
+mendaftar dengan nomor telepon, dan dalam hitungan detik ID Akun 6 digit Anda
+dibuat otomatis. Anda berada di tier Star. Anda menulis posting pertama, dan
+langsung mendapat 20 poin. Seseorang mengomentari posting Anda, dan Anda
+menerima 50 poin. Sebuah lingkaran kecil telah dimulai.
+
+Lalu Anda mulai menjelajah feed, menemukan konten menarik, memberi komentar,
+dan menonton stories teman. Saldo poin Anda tumbuh perlahan namun konsisten.
+Saat mencapai 500 poin, Anda naik ke Bronze — sebuah pencapaian kecil yang
+tetap terasa memuaskan. Anda mulai mentransfer poin ke teman yang sedang
+membuat konten bagus, dengan memindai QR code-nya, memasukkan PIN, dan dalam
+sekejap transaksi selesai. Lawan transaksi Anda menerima poin, dan Anda
+mendapat rasa kepuasan telah mendukung kreator yang Anda hargai.
+
+Seiring waktu, Anda merayakan kenaikan ke Silver, lalu Gold, dan bermimpi
+tentang Master. Setiap tier bukan sekadar angka — ia adalah cerita perjalanan
+Anda di komunitas. Inilah daya tarik BERUANG: ia mengubah rutinitas media sosial
+menjadi petualangan yang bermakna.
+
+BAGAIMANA BERUANG MENDORONG KOMUNITAS SEHAT
+
+Salah satu tantangan terbesar media sosial modern adalah konten beracun dan
+interaksi permukaan. BERUANG, dengan sistem poinnya, justru mendorong
+interaksi berkualitas. Memberi komentar sekadar untuk spam tidak menguntungkan
+secara struktural — dan lebih jauh, Ketentuan Layanan melarang spamming dan
+manipulasi. Sebaliknya, komentar yang tulus, posting yang bermanfaat, dan
+relasi yang sehat justru dihargai. Dengan kata lain, insentif ekonomi mini
+BERUANG menyelaraskan kepentingan individu dengan kesehatan komunitas.
+
+Selain itu, fitur follow memberi penghargaan (+10 poin) kepada pengguna yang
+diikuti, sehingga menciptakan keseimbangan: tidak hanya kreator besar yang
+diuntungkan, tetapi juga pengguna baru yang sedang membangun audiens. Ini
+adalah ekonomi perhatian yang lebih demokratis.
+
+KOMITMEN PRIVASI DAN TRANSPARANSI
+
+Di tengah meningkatnya kesadaran akan privasi data, BERUANG menyediakan
+Kebijakan Privasi dan Ketentuan Layanan yang ditulis dengan bahasa yang jelas
+dan lengkap. Pengguna mengetahui data apa yang dikumpulkan (nama, telepon,
+email opsional, konten yang diposting), bagaimana data digunakan, dan bagaimana
+data dilindungi (enkripsi transit, hash PIN, hak penghapusan). Untuk pengguna
+di Indonesia, kepatuhan terhadap UU Pelindungan Data Pribadi (UU PDP) menjadi
+prioritas. Ini adalah langkah penting di pasar yang sering kali tertinggal
+dalam hal transparansi data.
+
+PENGEMBANGAN MASA DEPAN
+
+ALTOMEDIA tidak berhenti di v1.0.0. Roadmap ke depan mencakup peningkatan
+algoritma rekomendasi feed, fitur event komunitas dengan bonus poin, serta
+kemungkinan integrasi konten kreatif seperti audio dan video pendek. Sistem
+tier juga akan diperkaya dengan hak istimewa yang nyata di setiap level.
+Keputusan teknis untuk memakai WebView + native juga memberi fleksibilitas
+tinggi: tim dapat merilis pembaruan sisi web dengan cepat tanpa harus
+menunggu proses review Play Store untuk setiap perubahan kecil.
+
+KESIMPULAN
+
+BERUANG adalah bukti bahwa media sosial masih bisa inovatif. Dengan
+menggabungkan kekuatan sosial, gamifikasi, dan ekonomi poin yang adil,
+ALTOMEDIA menciptakan ruang di mana setiap kontribusi Anda dihargai. Bagi
+pengguna yang lelah dengan platform yang hanya mengambil tanpa memberi,
+BERUANG menawarkan alternatif yang menyegarkan. Bagi pengembang yang ingin
+mempelajari bagaimana membangun aplikasi sosial modern dengan Supabase,
+BERUANG adalah studi kasus yang menarik.
+
+Jika Anda mencari aplikasi sosial yang memberi Anda alasan untuk tetap aktif —
+bukan karena FOMO, melainkan karena setiap interaksi benar-benar berharga —
+maka BERUANG layak dicoba. Unduh sekarang, buat akun, posting momen pertama
+Anda, dan rasakan sendiri bagaimana media sosial bisa terasa bermakna lagi.
+
+Selamat datang di BERUANG. Selamat datang di media sosial yang menghargai Anda.
+
+--------------------------------------------------------------------------------
+INFORMASI APLIKASI
+  Nama        : BERUANG
+  Pengembang  : ALTOMEDIA
+  Package     : com.altomedia.beruang
+  Platform    : Android (minSdk 23, targetSdk 37)
+  Backend     : Supabase
+  Versi       : 1.0.0
+  Harga       : Gratis
+  Kategori    : Social
+  Email       : support@altomedia.id
+  Lokasi      : Karawang, Jawa Barat, Indonesia
+
+TAG: #BERUANG #MediaSosial #Poin #ALTOMEDIA #AndroidApps #Supabase
+      #KomunitasDigital #GameSosial #Gamifikasi #AplikasiIndonesia
+
+================================================================================
+  Akhir artikel. Karakter: 4.000+ (telah memenuhi minimum).
+================================================================================

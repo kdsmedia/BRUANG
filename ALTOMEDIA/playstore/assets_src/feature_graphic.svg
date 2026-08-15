@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="55%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#92400e"/>
+      <stop offset="100%" stop-color="#5b2c0a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+  <circle cx="820" cy="120" r="40" fill="#ff0000" opacity="0.85"/>
+  <circle cx="980" cy="430" r="80" fill="#fff" opacity="0.10"/>
+  <circle cx="60" cy="470" r="50" fill="#fff" opacity="0.10"/>
+
+  <g transform="translate(70,60)">
+    <rect x="0" y="0" width="260" height="380" rx="28" fill="#1e293b"/>
+    <rect x="8" y="8" width="244" height="364" rx="22" fill="#f8fafc"/>
+    <rect x="8" y="8" width="244" height="20" fill="#eab308"/>
+    <text x="20" y="52" font-family="Arial" font-size="15" font-weight="700" fill="#1e293b">BERUANG</text>
+    <circle cx="228" cy="48" r="9" fill="#ff0000"/>
+    <circle cx="30" cy="84" r="16" fill="#eab308" stroke="#fff" stroke-width="2"/>
+    <circle cx="66" cy="84" r="16" fill="#92400e" stroke="#fff" stroke-width="2"/>
+    <circle cx="102" cy="84" r="16" fill="#6d28d9" stroke="#fff" stroke-width="2"/>
+    <circle cx="138" cy="84" r="16" fill="#cbd5e1" stroke="#fff" stroke-width="2" stroke-dasharray="3,3"/>
+    <rect x="14" y="116" width="232" height="200" rx="12" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="24" y="126" width="26" height="26" rx="13" fill="#92400e"/>
+    <rect x="58" y="128" width="60" height="9" rx="4" fill="#1e293b"/>
+    <rect x="58" y="142" width="40" height="7" rx="3" fill="#94a3b8"/>
+    <rect x="24" y="160" width="212" height="100" fill="#fde68a"/>
+    <circle cx="40" cy="280" r="9" fill="#ff0000"/>
+    <rect x="58" y="276" width="70" height="8" rx="4" fill="#1e293b"/>
+    <rect x="24" y="300" width="180" height="8" rx="4" fill="#94a3b8"/>
+    <rect x="8" y="352" width="244" height="20" rx="10" fill="#eab308"/>
+  </g>
+
+  <g transform="translate(560,90)">
+    <circle cx="150" cy="40" r="40" fill="url(#fur)"/>
+    <circle cx="330" cy="40" r="40" fill="url(#fur)"/>
+    <circle cx="150" cy="40" r="20" fill="#3b1c08"/>
+    <circle cx="330" cy="40" r="20" fill="#3b1c08"/>
+    <circle cx="240" cy="150" r="100" fill="url(#fur)"/>
+    <ellipse cx="240" cy="185" rx="58" ry="46" fill="#f5e6c8"/>
+    <circle cx="205" cy="135" r="16" fill="#1e293b"/>
+    <circle cx="275" cy="135" r="16" fill="#1e293b"/>
+    <circle cx="210" cy="130" r="5" fill="#fff"/>
+    <circle cx="280" cy="130" r="5" fill="#fff"/>
+    <ellipse cx="240" cy="170" rx="18" ry="12" fill="#1e293b"/>
+    <path d="M 240 185 Q 240 205 218 205" stroke="#1e293b" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M 240 185 Q 240 205 262 205" stroke="#1e293b" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <text x="400" y="320" font-family="Arial" font-size="56" font-weight="800" fill="#1e293b">BERUANG</text>
+  <text x="400" y="360" font-family="Arial" font-size="24" font-weight="500" fill="#1e293b" opacity="0.85">Connect &amp; Share — Social Media Berbasis Poin</text>
+  <text x="400" y="395" font-family="Arial" font-size="18" font-weight="400" fill="#1e293b" opacity="0.7">Posting · Chat · Transfer Poin · Upgrade Tier</text>
+</svg>

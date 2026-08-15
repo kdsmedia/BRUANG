@@ -1,0 +1,185 @@
+================================================================================
+  PANDUAN STORE LISTING — BERUANG
+  Panduan lengkap mengisi formulir Main Store Listing di Google Play Console
+  Package: com.altomedia.beruang
+================================================================================
+
+--------------------------------------------------------------------------------
+A. DETAIL APLIKASI (App Details)
+--------------------------------------------------------------------------------
+
+App name (Nama aplikasi):
+  BERUANG
+
+Short description (Deskripsi singkat — maks 80 karakter):
+  Media sosial berbasis poin — posting, chat, transfer poin & naik tier!
+
+Full description (Deskripsi lengkap — maks 4000 karakter):
+  Salin isi dari file: ALTOMEDIA/docs/store_full_description.txt
+  (atau gunakan versi Markdown di: ALTOMEDIA/playstore/store_full_description.md)
+
+--------------------------------------------------------------------------------
+B. KATEGORI & TAG
+--------------------------------------------------------------------------------
+
+App category: Social
+  (BERUANG adalah aplikasi media sosial. Jika ingin tampil sebagai game sosial,
+   pilih: Game > Social. Rekomendasi utama: Social.)
+
+Tags (pilih yang tersedia & relevan, maks 5):
+  - Social
+  - Chat
+  - Community
+  - Sharing
+  - Messaging
+
+--------------------------------------------------------------------------------
+C. GRAFIK (Graphics) — file di ALTOMEDIA/playstore/
+--------------------------------------------------------------------------------
+
+1. App icon (Ikon aplikasi):
+   - File: app_icon_512.png
+   - Ukuran: 512 x 512 px, PNG 32-bit, tanpa transparansi
+   - Sudah berisi maskot beruang BERUANG di atas latar amber.
+
+2. Feature graphic (Grafik fitur):
+   - File: feature_graphic.png
+   - Ukuran: 1024 x 500 px, PNG/JPG
+   - Banner promosi dengan mockup ponsel + maskot beruang.
+
+3. Phone screenshots (Screenshot ponsel — min 2, maks 8):
+   Direkomendasikan unggah semua 5 (ukuran 1080x1920):
+   - screenshots/screenshot_01_feed.png      (Feed beranda & posting)
+   - screenshots/screenshot_02_wallet.png     (Dompet poin & QR transfer)
+   - screenshots/screenshot_03_chat.png       (Daftar obrolan)
+   - screenshots/screenshot_04_profile.png    (Profil & tier ranking)
+   - screenshots/screenshot_05_stories.png    (Stories)
+
+   Urutan tampil direkomendasikan:
+   1. Feed  2. Wallet/QR  3. Chat  4. Profile  5. Stories
+
+   Catatan: 16:9 atau 9:16; 320px–3840px. Format kami 9:16 (1080x1920) sesuai.
+
+4. (Opsional) Tablet screenshots, 7-inch & 10-inch:
+   - Tidak wajib. Bisa pakai screenshot ponsel yang sama.
+
+5. (Opsional) Promo video:
+   - URL YouTube (opsional). Tidak ada untuk v1.0.0.
+
+--------------------------------------------------------------------------------
+D. PRIVACY POLICY & IZIN
+--------------------------------------------------------------------------------
+
+Privacy Policy URL:
+  Tempel URL publik dari ALTOMEDIA/legal/PRIVACY_POLICY.md
+  (host di GitHub Pages / situs ALTOMEDIA / layanan kebijakan privasi).
+
+Checkbox:
+  - "My app doesn't request access to sensitive permissions..." : TIDAK dicentang
+    (BERUANG memakai CAMERA untuk QR scan, jadi nyatakan dengan jujur.)
+
+--------------------------------------------------------------------------------
+E. APP CONTENT (wajib diisi sebelum rilis)
+--------------------------------------------------------------------------------
+
+1. Privacy Policy URL: (sama dengan atas)
+
+2. App access:
+   - Pilih: "All functionality is available without restrictions to all users."
+     (BERUANG tidak membatasi fitur berdasarkan region/akun.)
+
+3. Ads (Iklan):
+   - Pilih: "No, my app does not contain ads." (v1.0.0 tanpa iklan)
+
+4. In-app purchases (IAP):
+   - Pilih: "No" (poin virtual gratis, tidak ada IAP berbayar uang riil)
+
+5. Data safety (Form Keamanan Data) — wajib:
+   - Pilih: "Yes, my app collects data."
+   - Nyatakan data (lihat UPLOAD_GUIDE.txt BAGIAN 6 untuk rincian):
+       Personal info: Email, Phone, User IDs, Name
+       Financial info: Purchase history (riwayat transaksi poin)
+       Messages: In-app messages
+       Photos and videos: jika upload
+       App activity: interactions, search, UGC
+       App info and performance: crash logs, diagnostics
+       IDs: device or other IDs
+   - Encryption in transit: YES
+   - Users can request data deletion: YES
+
+6. Content rating (IARC):
+   - Isi kuesioner. BERUANG dimaksudkan untuk 13+.
+   - Nyatakan: tidak ada kekerasan realistis, tidak ada konten dewasa,
+     tidak ada perjudian uang riil (poin virtual TIDAK bernilai uang).
+
+7. Target audience:
+   - 13+ (sesuai Privacy Policy).
+
+8. News app: No
+9. Government app: No
+
+10. Financial apps declaration:
+    - BERUANG memakai poin VIRTUAL. Nyatakan:
+      "App uses virtual currency/points with no real-world monetary value.
+       Points cannot be exchanged for cash."
+    - Jika form menanyakan "Does your app facilitate financial transactions?":
+      pilih sesuai: poin virtual, BUKAN uang riil.
+
+--------------------------------------------------------------------------------
+F. TARGET SDK & PERSYARATAN PLAY
+--------------------------------------------------------------------------------
+
+  - minSdkVersion: 23
+  - targetSdkVersion: 37
+  - compileSdkVersion: 37
+  - buildToolsVersion: 37.0.0
+  - Format rilis: AAB (signed, keystore ALTOMEDIA.jks)
+  - Signing scheme: v2 (CN=ALTOMEDIA, O=ALTOMEDIA, L=Karawang, ST=Jawa Barat, C=ID)
+
+  Aplikasi sudah memenuhi persyaratan Play Console terkini untuk app baru.
+
+--------------------------------------------------------------------------------
+G. RILIS & TRACK
+--------------------------------------------------------------------------------
+
+1. Pilih track rilis:
+   - Untuk rilis perdana, rekomendasi: Internal testing (uji internal) >
+     Closed testing (uji tertutup) > Production (produksi).
+   - Atau langsung Production untuk rilis awal (jika sudah yakin).
+
+2. Upload AAB: ALTOMEDIA/release/beruang-v1.0.0-release.aab
+
+3. Release name: v1.0.0
+
+4. Release notes (per bahasa):
+   - Bahasa Indonesia: salin dari ALTOMEDIA/docs/RELEASE_NOTES.txt (bagian v1.0.0)
+   - English (opsional): terjemahkan ringkas.
+
+5. Review release > Start rollout.
+
+6. Status: "In review" -> (disetujui) -> "Live".
+
+--------------------------------------------------------------------------------
+H. DAFTAR CEKAK FINAL
+--------------------------------------------------------------------------------
+
+[ ] App name: BERUANG
+[ ] Short description diisi (<=80 char)
+[ ] Full description diisi (<=4000 char)
+[ ] Kategori: Social
+[ ] Tags dipilih
+[ ] App icon 512x512 diunggah (app_icon_512.png)
+[ ] Feature graphic 1024x500 diunggah (feature_graphic.png)
+[ ] Min 2 screenshot diunggah (5 screenshot tersedia)
+[ ] Privacy Policy URL valid
+[ ] Form Data Safety lengkap
+[ ] Content rating (IARC) diisi
+[ ] Target audience (13+) diisi
+[ ] Ads/IAP/financial declaration benar
+[ ] AAB release diunggah
+[ ] Release notes diisi
+[ ] Keystore ALTOMEDIA.jks aman & dibackup
+
+================================================================================
+  Akhir panduan store listing.
+================================================================================

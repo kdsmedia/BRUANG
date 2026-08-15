@@ -1,0 +1,15 @@
+from PIL import Image, ImageDraw
+
+img = Image.new("RGBA", (512, 512), (234, 179, 8, 255))
+d = ImageDraw.Draw(img)
+d.ellipse([120, 80, 220, 180], fill=(146, 64, 14, 255))
+d.ellipse([292, 80, 392, 180], fill=(146, 64, 14, 255))
+d.ellipse([150, 110, 190, 150], fill=(59, 28, 8, 255))
+d.ellipse([322, 110, 362, 150], fill=(59, 28, 8, 255))
+d.ellipse([136, 150, 376, 390], fill=(146, 64, 14, 255))
+d.ellipse([196, 250, 316, 370], fill=(245, 230, 200, 255))
+d.ellipse([196, 210, 246, 260], fill=(30, 41, 59, 255))
+d.ellipse([266, 210, 316, 260], fill=(30, 41, 59, 255))
+d.ellipse([238, 272, 274, 308], fill=(30, 41, 59, 255))
+img.save("app_icon_512.png", "PNG")
+print("icon saved", img.size)

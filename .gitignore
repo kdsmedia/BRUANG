@@ -1,0 +1,26 @@
+# Android / Gradle build artifacts
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/.cxx/
+
+# Gradle wrapper jar is kept (needed to build). Only ignore caches above.
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keystores (keep the project keystore committed for this release package,
+# but ignore any generated/debug keystores)
+android/*.jks.bak
+android/debug.keystore
+
+# Generated logs
+*.log
