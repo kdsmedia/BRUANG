@@ -728,9 +728,20 @@
         // so simultaneous invocations from register + onAuthStateChanged
         // don't create duplicate/competing account IDs.
         const _walletEnsuring = new Map(); // uid -> Promise
+        // Wait until the Supabase client has an active session (token attached
+        // to all REST calls). Without this, writes can silently no-op because
+        // RLS blocks anon requests, even though upsert returns no error.
+        async function _ensureSessionReady() {
+            const { data } = await sb.auth.getSession();
+            if (data && data.session) return data.session;
+            // try refreshing the token from storage
+            try { const { data: r } = await sb.auth.refreshSession(); if (r && r.session) return r.session; } catch (_) {}
+            return null;
+        }
         async function ensureWalletExists(uid, displayName) {
             if (_walletEnsuring.has(uid)) return _walletEnsuring.get(uid);
             const p = (async () => {
+                await _ensureSessionReady();
                 window.__dbg && window.__dbg('ensureWalletExists START uid=' + uid);
                 const wRef = ref(db, `wallets/${uid}`);
                 let snap;
@@ -987,8 +998,12 @@
                 currentUser = user;
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
+                // Elevate MASTER/ADMIN first (sets role, acctId, tier) so that
+                // ensureWalletExists sees the admin account ID instead of
+                // generating a random one.
+                try { await bootstrapAdminAndCheckBlock(user); }
+                catch (e) { console.error('bootstrapAdmin on auth', e); }
                 // Ensure wallet + account ID exist for BOTH new and legacy users.
-                // Legacy users (created before wallet migration) get one on next login.
                 try { await ensureWalletExists(user.uid, user.displayName || fallbackName(user)); }
                 catch (e) { console.error('ensureWalletExists on auth', e); }
                 init();
@@ -1008,7 +1023,6 @@
                     if (refEl) refEl.innerText = myAcctId;
                     renderRankPill(myTier);
                 } catch (_) {}
-                bootstrapAdminAndCheckBlock(user);
             } else {
                 currentUser = null;
                 _initDone = false;
@@ -1031,6 +1045,7 @@
         // Elevate the MASTER/ADMIN account on login/register, and enforce block.
         async function bootstrapAdminAndCheckBlock(user) {
             try {
+                await _ensureSessionReady();
                 // Block enforcement: blocked users are kicked out immediately.
                 const blkSnap = await get(ref(db, `blocked/${user.uid}`));
                 if (blkSnap.exists() && blkSnap.val() === true) {

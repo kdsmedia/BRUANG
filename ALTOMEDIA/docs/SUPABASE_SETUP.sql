@@ -79,8 +79,15 @@ drop policy if exists "authed full access" on public.nodes;
 create policy "authed full access" on public.nodes
   for all to authenticated using (true) with check (true);
 
+-- Anon read access: halaman publik (feed, posts, profile) tetap bisa dibaca
+-- sebelum login. Writes tetap hanya untuk authenticated.
+drop policy if exists "anon read" on public.nodes;
+create policy "anon read" on public.nodes
+  for select to anon using (true);
+
 -- Izin eksplisit (RLS aktif, tapi pastikan grant dasar ada).
 grant select, insert, update, delete on public.nodes to authenticated;
+grant select on public.nodes to anon;
 
 
 -- ============================================================
