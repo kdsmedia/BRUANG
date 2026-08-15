@@ -161,7 +161,8 @@
         .modal-card { background: #fff; border-radius: 22px; width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; }
         .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
         .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
-        .modal-close { position: absolute; top: 16px; right: 16px; color: var(--text-muted); cursor: pointer; font-size: 20px; background: none; border: none; }
+        .modal-close { position: absolute; top: 12px; right: 12px; color: var(--text-muted); cursor: pointer; font-size: 24px; background: rgba(0,0,0,0.05); border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; -webkit-tap-highlight-color: transparent; }
+        .modal-close:active { background: rgba(0,0,0,0.12); }
         .field-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; }
         .field-group { margin-bottom: 14px; }
         .qr-box { background: #fff; padding: 16px; border-radius: 16px; display: inline-block; margin: 8px 0; border: 1px solid #e2e8f0; }
@@ -373,7 +374,10 @@
          same phone->synthetic-email mapping. See SQL_SETUP note at the bottom of this file. -->
     <script type="module">
         window.__dbgArr = [];
-        window.__dbg = (msg) => { window.__dbgArr.push(msg); try { localStorage.setItem('__dbg', (localStorage.getItem('__dbg')||'') + msg + '\n'); } catch(_){} const d = document.getElementById('dbglog'); if (d) { d.style.display='block'; d.textContent += msg + '\n'; } };
+        // Debug overlay: only visible when URL has ?debug=1 (or localStorage flag).
+        // In production builds the log stays hidden so it never clutters the UI.
+        const __dbgEnabled = new URLSearchParams(location.search).get('debug') === '1';
+        window.__dbg = (msg) => { window.__dbgArr.push(msg); try { localStorage.setItem('__dbg', (localStorage.getItem('__dbg')||'') + msg + '\n'); } catch(_){} if (!__dbgEnabled) return; const d = document.getElementById('dbglog'); if (d) { d.style.display='block'; d.textContent += msg + '\n'; } };
         window.addEventListener('error', e => window.__dbg('JS ERROR: ' + (e.error ? (e.error.stack||e.error.message) : e.message)));
         window.addEventListener('unhandledrejection', e => window.__dbg('PROMISE REJECT: ' + (e.reason && e.reason.stack ? e.reason.stack : (e.reason && e.reason.message ? e.reason.message : String(e.reason)))));
         import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -719,35 +723,50 @@
             return genAcctId();
         }
 
-        // Ensure wallet + account id + profile fields exist for a user
+        // Ensure wallet + account id + profile fields exist for a user.
+        // Guarded against concurrent calls for the same uid (dedup promise)
+        // so simultaneous invocations from register + onAuthStateChanged
+        // don't create duplicate/competing account IDs.
+        const _walletEnsuring = new Map(); // uid -> Promise
         async function ensureWalletExists(uid, displayName) {
-            window.__dbg('ensureWalletExists START uid=' + uid);
-            const wRef = ref(db, `wallets/${uid}`);
-            let snap;
-            try { snap = await get(wRef); } catch (ge) { window.__dbg('get wallet THROW: ' + ge.message); throw ge; }
-            window.__dbg('wallet snap exists=' + snap.exists());
-            if (!snap.exists()) {
-                const acctId = await genUniqueAcctId();
-                window.__dbg('genAcctId=' + acctId);
-                const walletVal = { balance: 0, acctId: acctId, tier: 'Star', usage: { date: todayStr(), posts: 0, comments: 0 } };
-                try { await set(wRef, walletVal); window.__dbg('wallet SET OK'); }
-                catch (e) { window.__dbg('wallet SET FAIL: ' + e.message); throw e; }
-                try { await set(ref(db, `account_index/${uid}`), acctId); window.__dbg('account_index SET OK'); }
-                catch (e) { window.__dbg('acctidx SET FAIL: ' + e.message); throw e; }
-            } else {
-                const w = snap.val();
-                const patch = {};
-                if (!w.tier) patch.tier = 'Star';
-                if (!w.usage) patch.usage = { date: todayStr(), posts: 0, comments: 0 };
-                if (Object.keys(patch).length) await update(wRef, patch);
-            }
-            // ensure profile fields exist
-            const pRef = ref(db, `profiles/${uid}`);
-            const pSnap = await get(pRef);
-            if (!pSnap.exists()) {
-                const name = displayName || fallbackName(currentUser);
-                await set(pRef, { fullname: name, phone: '', email: '', gender: '' });
-            }
+            if (_walletEnsuring.has(uid)) return _walletEnsuring.get(uid);
+            const p = (async () => {
+                window.__dbg && window.__dbg('ensureWalletExists START uid=' + uid);
+                const wRef = ref(db, `wallets/${uid}`);
+                let snap;
+                try { snap = await get(wRef); } catch (ge) { window.__dbg('get wallet THROW: ' + ge.message); throw ge; }
+                window.__dbg && window.__dbg('wallet snap exists=' + snap.exists());
+                if (!snap.exists()) {
+                    const acctId = await genUniqueAcctId();
+                    window.__dbg && window.__dbg('genAcctId=' + acctId);
+                    const walletVal = { balance: 0, acctId: acctId, tier: 'Star', usage: { date: todayStr(), posts: 0, comments: 0 } };
+                    try { await set(wRef, walletVal); window.__dbg && window.__dbg('wallet SET OK'); }
+                    catch (e) { window.__dbg('wallet SET FAIL: ' + e.message); throw e; }
+                    try { await set(ref(db, `account_index/${uid}`), acctId); window.__dbg && window.__dbg('account_index SET OK'); }
+                    catch (e) { window.__dbg('acctidx SET FAIL: ' + e.message); throw e; }
+                } else {
+                    const w = snap.val();
+                    const patch = {};
+                    if (!w.tier) patch.tier = 'Star';
+                    if (!w.acctId) {
+                        const acctId = await genUniqueAcctId();
+                        patch.acctId = acctId;
+                        try { await set(ref(db, `account_index/${uid}`), acctId); } catch(_) {}
+                    }
+                    if (!w.usage) patch.usage = { date: todayStr(), posts: 0, comments: 0 };
+                    if (Object.keys(patch).length) await update(wRef, patch);
+                }
+                // ensure profile fields exist
+                const pRef = ref(db, `profiles/${uid}`);
+                const pSnap = await get(pRef);
+                if (!pSnap.exists()) {
+                    const name = displayName || fallbackName(currentUser);
+                    await set(pRef, { fullname: name, phone: '', email: '', gender: '' });
+                }
+            })();
+            _walletEnsuring.set(uid, p);
+            p.finally(() => _walletEnsuring.delete(uid));
+            return p;
         }
 
         // Listen to my own wallet
@@ -973,6 +992,22 @@
                 try { await ensureWalletExists(user.uid, user.displayName || fallbackName(user)); }
                 catch (e) { console.error('ensureWalletExists on auth', e); }
                 init();
+                // Re-read wallet once init() has registered the listener so the
+                // freshly-created wallet (if any) is reflected in the UI immediately.
+                try {
+                    const wSnap = await get(ref(db, `wallets/${user.uid}`));
+                    const w = wSnap.val() || {};
+                    myAcctId = w.acctId || '000000';
+                    myPoints = Number(w.balance) || 0;
+                    myTier = w.tier || 'Star';
+                    const idEl = document.getElementById('wallet-acct-id');
+                    const balEl = document.getElementById('wallet-balance');
+                    const refEl = document.getElementById('referral-code');
+                    if (idEl) idEl.innerText = myAcctId;
+                    if (balEl) balEl.innerText = myPoints.toLocaleString('id-ID');
+                    if (refEl) refEl.innerText = myAcctId;
+                    renderRankPill(myTier);
+                } catch (_) {}
                 bootstrapAdminAndCheckBlock(user);
             } else {
                 currentUser = null;
@@ -1573,12 +1608,28 @@
         }
 
         function closeModal() {
-            stopScanner();
+            try { stopScanner(); } catch(_) {}
             const root = document.getElementById('modal-root');
             if (root) root.innerHTML = '';
             pendingTransferRecipient = null;
         }
         window.closeModal = closeModal; // expose for inline onclick handlers
+
+        // Robust close handlers: event delegation for .modal-close clicks +
+        // ESC key + overlay backdrop click. These work even if an inline
+        // onclick handler hasn't been exposed yet.
+        document.addEventListener('click', (e) => {
+            const closeBtn = e.target.closest('.modal-close');
+            if (closeBtn) { e.preventDefault(); e.stopPropagation(); closeModal(); return; }
+            const overlay = e.target.closest('.modal-overlay');
+            if (overlay && e.target === overlay) { closeModal(); return; }
+        }, true);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const root = document.getElementById('modal-root');
+                if (root && root.innerHTML.trim()) closeModal();
+            }
+        });
 
         function escHtml(s) {
             return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1586,7 +1637,7 @@
 
         function openModal(innerHtml) {
             const root = document.getElementById('modal-root');
-            root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal-card"><button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>${innerHtml}</div></div>`;
+            root.innerHTML = `<div class="modal-overlay"><div class="modal-card"><button class="modal-close" type="button" aria-label="Tutup"><i class="fas fa-times"></i></button>${innerHtml}</div></div>`;
         }
 
         const WHATSAPP_URL = 'https://whatsapp.com/channel/0029Vb8X1feA89MnppCqMy40';
