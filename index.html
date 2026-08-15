@@ -102,7 +102,7 @@
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-top: 2px; }
         .grid-item { aspect-ratio: 1; width: 100%; object-fit: cover; cursor: pointer; }
         .grid-item-text { display: flex; align-items: center; justify-content: center; background: #f1f5f9; color: #94a3b8; font-size: 22px; }
-        .settings-btn { position: absolute; top: 20px; left: 20px; color: var(--text-muted); cursor: pointer; font-size: 22px; transition: transform 0.3s; }
+        .settings-btn { position: absolute; top: calc(20px + env(safe-area-inset-top)); left: 20px; color: var(--text-muted); cursor: pointer; font-size: 22px; transition: transform 0.3s; z-index: 10; }
         .settings-btn:active { transform: rotate(90deg); }
         .btn-logout { width: 100%; padding: 13px; border: none; border-radius: 14px; background: #fee2e2; color: var(--accent-red); font-weight: 700; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.1s; }
         .btn-logout:active { transform: scale(0.96); }
@@ -963,11 +963,15 @@
             showToast('Anda telah keluar.');
         };
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
+                // Ensure wallet + account ID exist for BOTH new and legacy users.
+                // Legacy users (created before wallet migration) get one on next login.
+                try { await ensureWalletExists(user.uid, user.displayName || fallbackName(user)); }
+                catch (e) { console.error('ensureWalletExists on auth', e); }
                 init();
                 bootstrapAdminAndCheckBlock(user);
             } else {
@@ -1085,9 +1089,12 @@
             const doRefresh = async () => {
                 indicator.classList.add('ptr-rotate');
                 try {
-                    // Re-run the live listeners so data is re-fetched from Supabase.
-                    listenFeed();
-                    listenStories();
+                    // Explicit one-shot re-reads guarantee fresh data appears
+                    // immediately, independent of realtime re-subscribe latency.
+                    await _refreshFeed();
+                    const sSnap = await get(query(ref(db, 'stories'), limitToLast(20)));
+                    const sc = document.getElementById('stories-container');
+                    if (sc) { const btn = sc.firstElementChild ? sc.firstElementChild.cloneNode(true) : null; sc.innerHTML = ''; if (btn) sc.appendChild(btn); const sd = sSnap.val() || {}; Object.values(sd).reverse().forEach(s => { sc.innerHTML += `<div class="story-card"><img src="${s.image}"></div>`; }); }
                     if (currentView === 'view-notif') listenNotifications();
                     if (currentView === 'view-profile') loadProfile();
                 } catch (e) {
@@ -1275,15 +1282,12 @@
             }
         };
 
-        function listenFeed() {
-            const q = query(ref(db, 'posts'), limitToLast(30));
-            onValue(q, (snapshot) => {
-                const container = document.getElementById('feed-container');
-                container.innerHTML = "";
-                const data = snapshot.val();
-                if(!data) { container.innerHTML = "<div style='text-align:center; margin-top:50px; color:gray; font-size:14px;'>Nothing here yet.</div>"; return; }
-                const posts = Object.entries(data).reverse();
-                posts.forEach(([pid, post]) => {
+        function _renderFeed(data) {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = "";
+            if(!data) { container.innerHTML = "<div style='text-align:center; margin-top:50px; color:gray; font-size:14px;'>Nothing here yet.</div>"; return; }
+            const posts = Object.entries(data).reverse();
+            posts.forEach(([pid, post]) => {
                     const u = usersCache[post.uid] || {username: 'Loading...', photo: DEFAULT_AVATAR};
                     const isLiked = post.likes && post.likes[currentUser.uid];
                     const likeCount = post.likes ? Object.keys(post.likes).length : 0;
@@ -1340,7 +1344,18 @@
                     `;
                     container.appendChild(div);
                 });
-            });
+        }
+
+        function listenFeed() {
+            const q = query(ref(db, 'posts'), limitToLast(30));
+            onValue(q, (snapshot) => { _renderFeed(snapshot.val()); });
+        }
+
+        // Manual one-shot feed re-read (used after posting & pull-to-refresh)
+        // to guarantee fresh content appears even if realtime is delayed.
+        async function _refreshFeed() {
+            const snap = await get(query(ref(db, 'posts'), limitToLast(30)));
+            _renderFeed(snap.val());
         }
 
         window.toggleLike = async (pid, authorId) => {
@@ -1437,6 +1452,9 @@
                 document.getElementById('post-caption').value = "";
                 clearUploadImage();
                 nav('view-home');
+                // Force a fresh feed read so the new post appears immediately,
+                // independent of realtime latency.
+                try { await _refreshFeed(); } catch (_) {}
                 await recordUsage('posts');
                 await awardPoints(currentUser.uid, POINTS.POST, `post`);
                 showToast(`+${POINTS.POST} poin (posting) · sisa ${c.limit === Infinity ? '∞' : (c.limit - c.used - 1)} hari ini`);
@@ -1560,6 +1578,7 @@
             if (root) root.innerHTML = '';
             pendingTransferRecipient = null;
         }
+        window.closeModal = closeModal; // expose for inline onclick handlers
 
         function escHtml(s) {
             return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2031,9 +2050,18 @@
         window.openEditProfileModal = async () => {
             const pSnap = await get(ref(db, `profiles/${currentUser.uid}`));
             const p = pSnap.val() || { fullname: '', phone: '', email: '', gender: '' };
+            const uSnap = await get(ref(db, `users/${currentUser.uid}`));
+            const u = uSnap.val() || {};
+            const curPhoto = u.photo || DEFAULT_AVATAR;
             openModal(`
                 <div class="modal-title">Edit Profil Lengkap</div>
                 <div class="modal-sub">Lengkapi data akun virtual Anda.</div>
+                <div class="field-group" style="text-align:center;">
+                    <label class="field-label">Foto Profil</label>
+                    <img id="ep-photo-preview" src="${curPhoto}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;margin:0 auto;display:block;border:3px solid var(--bg-nav);" onerror="this.src='${DEFAULT_AVATAR}'">
+                    <button type="button" class="btn-sec" style="margin-top:10px;width:auto;padding:7px 18px;border-radius:20px;font-size:12px;font-weight:600;" onclick="document.getElementById('ep-photo-file').click()"><i class="fas fa-camera"></i> Ganti Foto</button>
+                    <input type="file" id="ep-photo-file" accept="image/*" style="display:none;" onchange="previewProfilePicEdit(this)">
+                </div>
                 <div class="field-group">
                     <label class="field-label">Nama Lengkap</label>
                     <input id="ep-fullname" class="auth-input" value="${escHtml(p.fullname || '')}" placeholder="Nama lengkap">
@@ -2056,6 +2084,18 @@
                 <p id="ep-error" style="color:#ef4444; font-size:13px; text-align:center; min-height:18px; margin:0 0 8px 0;"></p>
                 <button class="btn-main" onclick="saveEditProfile()">Simpan Profil</button>
             `);
+            // Stash current photo so saveEditProfile knows the starting value.
+            window.__epPhoto = curPhoto;
+        };
+
+        // Preview a newly picked profile photo inside the edit modal.
+        window.previewProfilePicEdit = async (input) => {
+            if (!input.files[0]) return;
+            const url = await uploadToStorage(input.files[0], 'avatars', 300, 0.6);
+            if (url) {
+                document.getElementById('ep-photo-preview').src = url;
+                window.__epPhoto = url;
+            }
         };
 
         window.saveEditProfile = async () => {
@@ -2064,11 +2104,12 @@
             const email = document.getElementById('ep-email').value.trim();
             const genderEl = document.querySelector('input[name="ep-gender"]:checked');
             const gender = genderEl ? genderEl.value : '';
+            const photo = window.__epPhoto || DEFAULT_AVATAR;
             const err = document.getElementById('ep-error');
             if (!fullname) { err.innerText = 'Nama lengkap wajib diisi'; return; }
             await update(ref(db, `profiles/${currentUser.uid}`), { fullname, phone, email, gender });
-            await updateProfile(currentUser, { displayName: fullname });
-            await update(ref(db, `users/${currentUser.uid}`), { username: fullname });
+            await update(ref(db, `users/${currentUser.uid}`), { username: fullname, photo });
+            await updateProfile(currentUser, { displayName: fullname, photoURL: photo });
             showToast('Profil tersimpan');
             closeModal();
             loadProfile();
