@@ -398,6 +398,10 @@
         //     -> integer (1 if updated, 0 if concurrent change)
 
         const _escLike = (s) => String(s).replace(/\\/g,'\\\\').replace(/%/g,'\\%').replace(/_/g,'\\_');
+        // PostgREST `.or()`/`.filter()` raw strings do NOT URL-encode values, so
+        // slashes in paths (e.g. wallets/<uuid>/acctId) break the LIKE filter.
+        // Build a properly URL-encoded "path.like.<prefix>/%" segment.
+        const _likeFilter = (path) => 'path.like.' + encodeURIComponent(path + '/%');
 
         // Flatten a JSON value into {path: value} leaf entries (objects recurse).
         function _flatten(obj, prefix, out) {
@@ -448,7 +452,7 @@
             const { data, error } = await sb.from('nodes')
                 .select('path,value')
                 .filter('path', 'eq', path)
-                .or(`path.like.${_escLike(path)}/%`);
+                .or(_likeFilter(path));
             if (error) { console.error('read error', path, error); return null; }
             return _buildTree(data || [], path);
         }
@@ -471,7 +475,7 @@
             const { error: de } = await sb.from('nodes')
                 .delete()
                 .filter('path', 'eq', path)
-                .or(`path.like.${_escLike(path)}/%`);
+                .or(_likeFilter(path));
             if (de) console.error('set delete error', de);
             if (value === null || value === undefined) return;
             const leaves = {};
@@ -493,7 +497,7 @@
             const { error } = await sb.from('nodes')
                 .delete()
                 .filter('path', 'eq', r.path)
-                .or(`path.like.${_escLike(r.path)}/%`);
+                .or(_likeFilter(r.path));
             if (error) console.error('remove error', error);
         }
 
@@ -515,7 +519,7 @@
             }
             // initial
             _readValue(path).then(v => cb(_snap(v)));
-            const filter = `path.like.${_escLike(path)}/%`;
+            const filter = _likeFilter(path);
             let timer = null;
             const schedule = () => {
                 if (timer) return;
