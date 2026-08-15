@@ -12,6 +12,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -55,6 +56,11 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Edge-to-edge so the WebView renders behind system bars; the web app
+        // handles top/bottom insets via CSS env(safe-area-inset-*). Required for
+        // correct viewport on Android 15+ (targetSdk >= 35 enforces edge-to-edge).
+        enableEdgeToEdge()
 
         webView = WebView(this).apply {
             settings.javaScriptEnabled = true

@@ -5,6 +5,28 @@
 ================================================================================
 
 --------------------------------------------------------------------------------
+v1.0.1  —  15 Agustus 2026  —  Perbaikan Responsivitas Layar
+--------------------------------------------------------------------------------
+
+PERBAIKAN (BUG FIX):
+  - Header tidak lagi terpotong oleh status bar (edge-to-edge + safe-area top).
+  - Menu navigasi bawah (nav-dock) tidak lagi terpotong oleh gesture bar.
+  - Tinggi viewport pakai 100dvh (dynamic viewport) menggantikan 100vh agar
+    tidak melebihi area terlihat pada layar ponsel modern.
+  - viewport-fit=cover ditambahkan agar env(safe-area-inset-*) aktif.
+  - Padding safe-area diterapkan pada: header (atas), nav-dock (bawah),
+    chat input bar (bawah), toast, dan auth-view.
+  - MainActivity memakai enableEdgeToEdge() untuk konsistensi di semua level API.
+
+PERUBAHAN TEKNIS:
+  - versionCode: 1 -> 2
+  - versionName: 1.0.0 -> 1.0.1
+  - index.html & assets/web/index.html disinkronkan.
+
+CATATAN:
+  - Tidak ada perubahan fitur; hanya tata letak responsif.
+
+--------------------------------------------------------------------------------
 v1.0.0  —  15 Agustus 2026  —  RILIS PERDANA
 --------------------------------------------------------------------------------
 
