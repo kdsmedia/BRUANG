@@ -102,7 +102,7 @@
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-top: 2px; }
         .grid-item { aspect-ratio: 1; width: 100%; object-fit: cover; cursor: pointer; }
         .grid-item-text { display: flex; align-items: center; justify-content: center; background: #f1f5f9; color: #94a3b8; font-size: 22px; }
-        .settings-btn { position: absolute; top: calc(20px + env(safe-area-inset-top)); left: 20px; color: var(--text-muted); cursor: pointer; font-size: 22px; transition: transform 0.3s; z-index: 10; }
+        .settings-btn { position: absolute; top: calc(20px + env(safe-area-inset-top)); left: 20px; color: var(--text-muted); cursor: pointer; font-size: 26px; transition: transform 0.3s; z-index: 10; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
         .settings-btn:active { transform: rotate(90deg); }
         .btn-logout { width: 100%; padding: 13px; border: none; border-radius: 14px; background: #fee2e2; color: var(--accent-red); font-weight: 700; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.1s; }
         .btn-logout:active { transform: scale(0.96); }
@@ -2183,13 +2183,21 @@
             const photo = window.__epPhoto || DEFAULT_AVATAR;
             const err = document.getElementById('ep-error');
             if (!fullname) { err.innerText = 'Nama lengkap wajib diisi'; return; }
-            await update(ref(db, `profiles/${currentUser.uid}`), { fullname, phone, email, gender });
-            await update(ref(db, `users/${currentUser.uid}`), { username: fullname, photo });
-            await updateProfile(currentUser, { displayName: fullname, photoURL: photo });
-            showToast('Profil tersimpan');
-            closeModal();
-            loadProfile();
-            listenFeed();
+            err.innerText = '';
+            const btn = document.querySelector('.btn-main[onclick="saveEditProfile()"]');
+            if (btn) { btn.disabled = true; btn.innerText = 'Menyimpan...'; }
+            try {
+                await update(ref(db, `profiles/${currentUser.uid}`), { fullname, phone, email, gender });
+                await update(ref(db, `users/${currentUser.uid}`), { username: fullname, photo });
+                try { await updateProfile(currentUser, { displayName: fullname, photoURL: photo }); } catch (_) {}
+                showToast('Profil tersimpan');
+                closeModal();
+                loadProfile();
+                listenFeed();
+            } catch (e) {
+                err.innerText = 'Gagal menyimpan: ' + (e && e.message ? e.message : 'kesalahan');
+                if (btn) { btn.disabled = false; btn.innerText = 'Simpan Profil'; }
+            }
         };
 
         // ============ ADMIN TOOLS (MASTER/ADMIN only) ============
