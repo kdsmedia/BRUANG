@@ -1,21 +1,36 @@
 -- ============================================================
 --  BERUANG — SUPABASE SETUP (jalankan SEKALI di SQL Editor)
 --  Project: jzyfxdysukzvnfllcbvq
+--  Region : ap-south-1
 -- ============================================================
---  Aplikasi memakai satu tabel generik `nodes(path, value, ts)` sebagai
---  pengganti Firebase RTDB, plus RPC `cas_update` untuk transaksi atomik
---  (saldo dompet poin). Realtime (live updates) juga diaktifkan.
+--  Skrip LENGKAP & IDEMPOTENT (boleh dijalankan berulang tanpa error).
+--  Mencakup:
+--    1. Tabel `nodes` (pengganti Firebase RTDB) + index
+--    2. RPC `cas_update` (transaksi atomik saldo dompet)
+--    3. Realtime (live updates)
+--    4. Row Level Security untuk `nodes`
+--    5. Storage bucket `media` + policy (upload gambar posting/story/avatar)
+--    6. GRANT akses eksekusi & konfigurasi Auth (di dashboard)
 -- ============================================================
 
--- 1. Tabel penyimpanan: satu baris per "node" data (seluruh database app).
+
+-- ============================================================
+--  1. TABEL NODES — satu baris per "node" data (seluruh database app)
+-- ============================================================
 create table if not exists public.nodes (
   path text primary key,
   value jsonb,
   ts bigint not null default 0
 );
+
+-- Index untuk query path LIKE 'prefix/%' (rekonstruksi tree pada onValue).
 create index if not exists nodes_path_like_idx on public.nodes (path text_pattern_ops);
 
--- 2. RPC compare-and-swap untuk runTransaction (update saldo dompet atomik).
+
+-- ============================================================
+--  2. RPC cas_update — compare-and-swap untuk runTransaction
+--     (update saldo dompet poin secara atomik, anti race condition)
+-- ============================================================
 create or replace function public.cas_update(
   p_path text, p_expected_ts bigint, p_new_value jsonb, p_new_ts bigint
 ) returns int language plpgsql as $$
@@ -33,22 +48,90 @@ begin
   return coalesce(ok, 0);
 end; $$;
 
--- 3. Aktifkan Realtime pada tabel (agar onValue() live update berfungsi).
-alter publication supabase_realtime add table public.nodes;
+-- Berikan izin eksekusi RPC ke user yang login (anon tidak butuh ini).
+grant execute on function public.cas_update(text, bigint, jsonb, bigint) to authenticated;
 
--- 4. Row Level Security — kebijakan sederhana (pengguna auth baca/tulis semua node).
---    Tighten per-path sesuai kebutuhan produksi.
+
+-- ============================================================
+--  3. REALTIME — aktifkan live updates pada tabel nodes
+--     (agar onValue() di aplikasi langsung update tanpa refresh)
+-- ============================================================
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'nodes'
+  ) then
+    alter publication supabase_realtime add table public.nodes;
+  end if;
+end $$;
+
+
+-- ============================================================
+--  4. ROW LEVEL SECURITY untuk tabel nodes
+--     (user login baca/tulis semua node app; anon read agar halaman
+--      publik tetap jalan sebelum login jika diperlukan)
+-- ============================================================
 alter table public.nodes enable row level security;
+
+-- Policy digeser ke DROP dulu lalu CREATE agar idempotent.
+drop policy if exists "authed full access" on public.nodes;
 create policy "authed full access" on public.nodes
   for all to authenticated using (true) with check (true);
 
--- 5. AUTH: di Supabase Dashboard set "Confirm email" = OFF
---    (Authentication > Sign In / Providers > Email > Confirm email: OFF)
---    agar email sintetis berbasis telepon (08xxx@beruang.phone) bisa langsung login.
+-- Izin eksplisit (RLS aktif, tapi pastikan grant dasar ada).
+grant select, insert, update, delete on public.nodes to authenticated;
+
 
 -- ============================================================
---  SETELAH SKRIPT INI:
---  - Tabel `nodes`, RPC `cas_update`, Realtime, dan RLS aktif.
---  - Aplikasi BERUANG langsung dapat baca/tulis data & live updates.
---  - Tidak ada perubahan kode aplikasi yang diperlukan.
+--  5. STORAGE BUCKET "media" — penyimpanan gambar
+--     (posting, story, foto profil). Jika bucket belum ada, aplikasi
+--      fallback ke base64 di DB (lambat & boros). Buat bucket ini agar
+--      upload menyimpan public URL yang cepat & ringan.
+-- ============================================================
+
+-- 5a. Buat bucket PUBLIC bernama "media".
+insert into storage.buckets (id, name, public)
+  values ('media', 'media', true)
+  on conflict (id) do nothing;
+
+-- 5b. Policy STORAGE — siapa saja bisa baca (public URL), user login bisa upload.
+--     DROP dulu lalu CREATE agar idempotent (tidak error jika di-run ulang).
+drop policy if exists "media read" on storage.objects;
+create policy "media read" on storage.objects
+  for select to anon, authenticated using (bucket_id = 'media');
+
+drop policy if exists "media upload" on storage.objects;
+create policy "media upload" on storage.objects
+  for insert to authenticated with check (bucket_id = 'media');
+
+drop policy if exists "media update" on storage.objects;
+create policy "media update" on storage.objects
+  for update to authenticated using (bucket_id = 'media');
+
+drop policy if exists "media delete" on storage.objects;
+create policy "media delete" on storage.objects
+  for delete to authenticated using (bucket_id = 'media');
+
+
+-- ============================================================
+--  6. KONFIGURASI AUTH (DILAKUKAN DI DASHBOARD, BUKAN SQL)
+--  ============================================================
+--  Supabase Dashboard > Authentication > Sign In / Providers > Email:
+--    - Confirm email : OFF   (wajib! agar email sintetis 08xxx@beruang.phone
+--                              bisa langsung login tanpa verifikasi)
+--    - Enable Email provider: ON
+--  Opsional (jika ingin koneksi S3 dari server/CLI):
+--    - Dashboard > Storage > S3 Connection > gunakan kredensial S3
+--      (endpoint: https://jzyfxdysukzvnfllcbvq.storage.supabase.co/storage/v1/s3,
+--       region: ap-south-1). Aplikasi browser/APK TIDAK butuh S3 — cukup
+--      bucket + policy di atas.
+
+-- ============================================================
+--  SETELAH SKRIP INI:
+--    - Tabel `nodes`, RPC `cas_update`, Realtime, RLS aktif.
+--    - Bucket Storage `media` + policy aktif (upload gambar via public URL).
+--    - Aplikasi BERUANG langsung dapat baca/tulis data, live updates,
+--      dan upload gambar ke Storage tanpa delay/bug.
+--    - Tidak ada perubahan kode aplikasi yang diperlukan.
 -- ============================================================
